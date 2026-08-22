@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TeamChat - Step1</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+body { font-family: sans-serif; background: #0f1117; color: #e8eaf0; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+.card { background: #171b26; border: 1px solid #2a3050; border-radius: 16px; padding: 36px; width: 340px; }
+h2 { margin: 0 0 20px; font-size: 20px; }
+input { width: 100%; padding: 10px 12px; margin-bottom: 12px; background: #1e2435; border: 1px solid #2a3050; border-radius: 8px; color: #e8eaf0; font-size: 14px; box-sizing: border-box; outline: none; }
+button { width: 100%; padding: 11px; background: #5b8af0; border: none; border-radius: 8px; color: #fff; font-size: 14px; font-weight: 700; cursor: pointer; margin-bottom: 8px; }
+button:hover { opacity: 0.85; }
+button:disabled { opacity: 0.5; cursor: not-allowed; }
+.sub { font-size: 12px; color: #8b93b0; text-align: center; cursor: pointer; }
+.sub:hover { color: #e8eaf0; }
+.err { color: #e05a5a; font-size: 12px; margin-top: 8px; text-align: center; min-height: 16px; word-break: break-all; }
+.suc { color: #4caf88; font-size: 13px; margin-top: 8px; text-align: center; min-height: 16px; }
+.log { margin-top: 12px; background: #0f1117; border-radius: 8px; padding: 10px; font-size: 11px; color: #8b93b0; max-height: 120px; overflow-y: auto; }
+</style>
+</head>
+<body>
+<div class="card">
+  <h2 id="title">ログイン</h2>
+  <div id="username-wrap" style="display:none">
+    <input type="text" id="username" placeholder="ユーザー名">
+  </div>
+  <input type="email" id="email" placeholder="メールアドレス">
+  <input type="password" id="pass" placeholder="パスワード（6文字以上）">
+  <button id="btn" onclick="doAction()">ログイン</button>
+  <div class="sub" onclick="toggle()" id="toggle-link">→ 新規登録はこちら</div>
+  <div class="err" id="msg"></div>
+  <div class="suc" id="ok"></div>
+  <div class="log" id="log"></div>
+</div>
+
+<script>
+var SUPABASE_URL = 'https://nsckdlitgupublaqaypx.supabase.co';
+var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5zY2tkbGl0Z3VwdWJsYXFheXB4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODczNzc3ODgsImV4cCI6MjEwMjk1Mzc4OH0._IhnshSj5O0_aMmWSN6u5Z3iUN6SME7tBAH0p73x2xE';
+var isLogin = true;
+var sb;
+
+function addLog(text) {
+  var el = document.getElementById('log');
+  var t = new Date().toLocaleTimeString('ja-JP');
+  el.innerHTML += '[' + t + '] ' + text + '<br>';
+  el.scrollTop = el.scrollHeight;
+}
+
+try {
+  sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  addLog('✅ Supabase初期化OK');
+  document.getElementById('ok').textContent = '✅ Supabase接続OK';
+} catch(e) {
+  addLog('❌ 初期化失敗: ' + e.message);
+  document.getElementById('msg').textContent = '❌ 初期化失敗: ' + e.message;
+}
+
+function toggle() {
+  isLogin = !isLogin;
+  document.getElementById('title').textContent = isLogin ? 'ログイン' : '新規登録';
+  document.getElementById('btn').textContent = isLogin ? 'ログイン' : '登録する';
+  document.getElementById('toggle-link').textContent = isLogin ? '→ 新規登録はこちら' : '→ ログインはこちら';
+  document.getElementById('username-wrap').style.display = isLogin ? 'none' : 'block';
+  document.getElementById('msg').textContent = '';
+  document.getElementById('ok').textContent = '';
+}
+
+function doAction() {
+  var email = document.getElementById('email').value.trim();
+  var pass = document.getElementById('pass').value;
+  var username = document.getElementById('username').value.trim();
+  document.getElementById('msg').textContent = '';
+  document.getElementById('ok').textContent = '';
+
+  if (!email || !pass) {
+    document.getElementById('msg').textContent = 'メールとパスワードを入力してください';
+    return;
+  }
+
+  var btn = document.getElementById('btn');
+  btn.disabled = true;
+  btn.textContent = '処理中...';
+
+  if (isLogin) {
+    addLog('ログイン試行: ' + email);
+    sb.auth.signInWithPassword({ email: email, password: pass }).then(function(res) {
+      btn.disabled = false;
+      btn.textContent = 'ログイン';
+      if (res.error) {
+        addLog('❌ エラー: ' + res.error.message + ' (status: ' + res.error.status + ')');
+        var msg = res.error.message;
+        if (msg === 'Invalid login credentials') msg = 'メールまたはパスワードが違います';
+        if (msg.indexOf('Email not confirmed') !== -1) msg = 'メール確認が必要です。Supabase → Authentication → Email → Confirm email をOFFに';
+        document.getElementById('msg').textContent = '❌ ' + msg;
+      } else {
+        addLog('✅ ログイン成功: ' + res.data.user.email);
+        document.getElementById('ok').textContent = '✅ ログイン成功！フェーズ2へ進めます！';
+      }
+    }).catch(function(e) {
+      btn.disabled = false;
+      btn.textContent = 'ログイン';
+      addLog('❌ 例外: ' + e.message);
+      document.getElementById('msg').textContent = '❌ ' + e.message;
+    });
+
+  } else {
+    if (!username) {
+      document.getElementById('msg').textContent = 'ユーザー名を入力してください';
+      btn.disabled = false;
+      btn.textContent = '登録する';
+      return;
+    }
+    addLog('新規登録試行: ' + email + ' / ' + username);
+    sb.auth.signUp({
+      email: email,
+      password: pass,
+      options: { data: { username: username } }
+    }).then(function(res) {
+      btn.disabled = false;
+      btn.textContent = '登録する';
+      if (res.error) {
+        addLog('❌ エラー: ' + res.error.message);
+        document.getElementById('msg').textContent = '❌ ' + res.error.message;
+      } else {
+        addLog('✅ 登録成功: ' + res.data.user.email);
+        document.getElementById('ok').textContent = '✅ 登録成功！そのままログインできます';
+        toggle();
+      }
+    }).catch(function(e) {
+      btn.disabled = false;
+      btn.textContent = '登録する';
+      addLog('❌ 例外: ' + e.message);
+      document.getElementById('msg').textContent = '❌ ' + e.message;
+    });
+  }
+}
+</script>
+</body>
+</html>
