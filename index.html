@@ -3,48 +3,56 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>TeamChat - Step2</title>
+<title>TeamChat</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 body { font-family: sans-serif; background: #0f1117; color: #e8eaf0; height: 100dvh; overflow: hidden; display: flex; flex-direction: column; }
 
-#auth-screen { display: flex; align-items: center; justify-content: center; height: 100dvh; }
+/* AUTH */
+#auth-screen { display: flex; align-items: center; justify-content: center; height: 100dvh; background: radial-gradient(ellipse at 60% 30%, #1a2060 0%, #0f1117 70%); }
 .auth-card { background: #171b26; border: 1px solid #2a3050; border-radius: 16px; padding: 36px; width: 340px; }
-.auth-card h2 { margin: 0 0 20px; font-size: 20px; }
+.auth-logo { font-size: 24px; font-weight: 800; color: #5b8af0; margin-bottom: 4px; }
+.auth-sub { font-size: 12px; color: #8b93b0; margin-bottom: 24px; }
+.auth-tabs { display: flex; gap: 4px; background: #1e2435; border-radius: 8px; padding: 4px; margin-bottom: 20px; }
+.auth-tab { flex: 1; padding: 7px; border: none; background: none; color: #8b93b0; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; }
+.auth-tab.active { background: #5b8af0; color: #fff; }
 .auth-card input { width: 100%; padding: 10px 12px; margin-bottom: 12px; background: #1e2435; border: 1px solid #2a3050; border-radius: 8px; color: #e8eaf0; font-size: 14px; outline: none; }
-.auth-card button { width: 100%; padding: 11px; background: #5b8af0; border: none; border-radius: 8px; color: #fff; font-size: 14px; font-weight: 700; cursor: pointer; margin-bottom: 8px; }
-.auth-card button:disabled { opacity: 0.5; cursor: not-allowed; }
-.toggle-link { font-size: 12px; color: #8b93b0; text-align: center; cursor: pointer; }
-.toggle-link:hover { color: #e8eaf0; }
-.err { color: #e05a5a; font-size: 12px; margin-top: 8px; text-align: center; }
-.suc { color: #4caf88; font-size: 13px; margin-top: 8px; text-align: center; }
+.auth-card input:focus { border-color: #5b8af0; }
+.auth-card button.primary { width: 100%; padding: 11px; background: #5b8af0; border: none; border-radius: 8px; color: #fff; font-size: 14px; font-weight: 700; cursor: pointer; }
+.auth-card button.primary:disabled { opacity: 0.5; cursor: not-allowed; }
+.auth-err { color: #e05a5a; font-size: 12px; margin-top: 8px; text-align: center; min-height: 16px; }
+.auth-ok { color: #4caf88; font-size: 12px; margin-top: 8px; text-align: center; min-height: 16px; }
 
+/* APP */
 #app { display: none; flex: 1; overflow: hidden; }
 #app.visible { display: flex; }
 
+/* SIDEBAR */
 .sidebar { width: 220px; background: #171b26; border-right: 1px solid #2a3050; display: flex; flex-direction: column; flex-shrink: 0; }
 .sidebar-header { padding: 14px 16px; border-bottom: 1px solid #2a3050; display: flex; align-items: center; justify-content: space-between; }
 .sidebar-logo { font-size: 15px; font-weight: 800; color: #5b8af0; }
-.add-room-btn { background: none; border: none; color: #8b93b0; cursor: pointer; font-size: 20px; line-height: 1; padding: 2px 6px; border-radius: 4px; }
-.add-room-btn:hover { background: #1e2435; color: #e8eaf0; }
-.add-room-btn.hidden { display: none; }
-.rooms-list { flex: 1; overflow-y: auto; padding: 8px; }
+.icon-btn { background: none; border: none; color: #8b93b0; cursor: pointer; font-size: 18px; padding: 3px 7px; border-radius: 4px; }
+.icon-btn:hover { background: #1e2435; color: #e8eaf0; }
+.icon-btn.hidden { display: none; }
+.rooms-section { flex: 1; overflow-y: auto; padding: 8px; }
 .rooms-label { font-size: 11px; color: #8b93b0; font-weight: 700; letter-spacing: 1px; padding: 8px 8px 4px; text-transform: uppercase; }
-.room-item { display: flex; align-items: center; gap: 6px; padding: 7px 10px; border-radius: 8px; cursor: pointer; color: #8b93b0; font-size: 14px; transition: all 0.15s; margin-bottom: 2px; }
+.room-item { display: flex; align-items: center; gap: 6px; padding: 7px 10px; border-radius: 8px; cursor: pointer; color: #8b93b0; font-size: 14px; transition: all 0.15s; margin-bottom: 2px; position: relative; user-select: none; }
 .room-item:hover { background: #1e2435; color: #e8eaf0; }
 .room-item.active { background: #5b8af0; color: #fff; }
 .sidebar-footer { padding: 12px 16px; border-top: 1px solid #2a3050; display: flex; align-items: center; gap: 8px; }
 .avatar { width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: #fff; flex-shrink: 0; }
 .user-name { font-size: 13px; font-weight: 600; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.logout-btn { background: none; border: none; color: #8b93b0; cursor: pointer; font-size: 18px; }
+.logout-btn { background: none; border: none; color: #8b93b0; cursor: pointer; font-size: 16px; padding: 4px; border-radius: 4px; }
 .logout-btn:hover { color: #e05a5a; }
 
+/* MAIN */
 .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
-.main-header { padding: 0 20px; height: 52px; border-bottom: 1px solid #2a3050; display: flex; align-items: center; background: #171b26; flex-shrink: 0; }
+.main-header { padding: 0 20px; height: 52px; border-bottom: 1px solid #2a3050; display: flex; align-items: center; background: #171b26; flex-shrink: 0; gap: 8px; }
 .channel-title { font-size: 15px; font-weight: 700; }
-.channel-desc { font-size: 12px; color: #8b93b0; margin-left: 10px; }
+.channel-desc { font-size: 12px; color: #8b93b0; }
 
+/* MESSAGES */
 .messages-wrap { flex: 1; overflow-y: auto; padding: 16px 20px; }
 .messages-wrap::-webkit-scrollbar { width: 6px; }
 .messages-wrap::-webkit-scrollbar-thumb { background: #2a3050; border-radius: 3px; }
@@ -53,65 +61,122 @@ body { font-family: sans-serif; background: #0f1117; color: #e8eaf0; height: 100
 .msg { display: flex; gap: 10px; margin-bottom: 4px; padding: 3px 8px; border-radius: 8px; }
 .msg:hover { background: #1e2435; }
 .msg.first-in-group { margin-top: 14px; }
-.msg-avatar { width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: #fff; flex-shrink: 0; margin-top: 2px; }
+.msg-avatar { width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; flex-shrink: 0; margin-top: 2px; }
 .msg-spacer { width: 34px; flex-shrink: 0; }
 .msg-body { flex: 1; min-width: 0; }
 .msg-header { display: flex; align-items: baseline; gap: 8px; margin-bottom: 2px; }
 .msg-author { font-size: 14px; font-weight: 700; }
 .msg-time { font-size: 11px; color: #8b93b0; }
 .msg-text { font-size: 14px; line-height: 1.55; word-break: break-word; white-space: pre-wrap; }
+.msg-img { max-width: 300px; max-height: 220px; border-radius: 8px; margin-top: 6px; cursor: pointer; object-fit: cover; border: 1px solid #2a3050; display: block; }
+.template-bubble { display: inline-block; padding: 7px 14px; border-radius: 16px; font-size: 13px; font-weight: 600; margin-top: 2px; }
+.typing-bar { padding: 4px 28px; font-size: 12px; color: #8b93b0; min-height: 22px; flex-shrink: 0; }
+.typing-dot { display: inline-block; width: 4px; height: 4px; border-radius: 50%; background: #8b93b0; margin: 0 1px; animation: tdot 1.2s infinite; }
+.typing-dot:nth-child(2) { animation-delay: 0.2s; }
+.typing-dot:nth-child(3) { animation-delay: 0.4s; }
+@keyframes tdot { 0%,60%,100%{opacity:0.3;transform:scale(1)}30%{opacity:1;transform:scale(1.3)} }
 
-.input-area { padding: 12px 20px 16px; border-top: 1px solid #2a3050; background: #171b26; flex-shrink: 0; }
-.input-row { display: flex; gap: 8px; align-items: center; }
-.msg-input { flex: 1; padding: 11px 16px; background: #1e2435; border: 1px solid #2a3050; border-radius: 12px; color: #e8eaf0; font-size: 14px; outline: none; font-family: inherit; }
+/* INPUT */
+.input-area { padding: 10px 20px 14px; border-top: 1px solid #2a3050; background: #171b26; flex-shrink: 0; }
+.input-toolbar { display: flex; gap: 6px; margin-bottom: 8px; }
+.toolbar-btn { padding: 5px 10px; background: #1e2435; border: 1px solid #2a3050; border-radius: 6px; color: #8b93b0; font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 4px; }
+.toolbar-btn:hover { border-color: #5b8af0; color: #5b8af0; }
+.img-preview-wrap { margin-bottom: 8px; display: none; position: relative; width: fit-content; }
+.img-preview { max-height: 80px; border-radius: 8px; border: 1px solid #2a3050; }
+.img-preview-rm { position: absolute; top: -8px; right: -8px; width: 20px; height: 20px; border-radius: 50%; background: #e05a5a; border: none; color: #fff; cursor: pointer; font-size: 11px; display: flex; align-items: center; justify-content: center; }
+.input-row { display: flex; gap: 8px; align-items: flex-end; }
+.msg-input { flex: 1; padding: 11px 16px; background: #1e2435; border: 1px solid #2a3050; border-radius: 12px; color: #e8eaf0; font-size: 14px; outline: none; font-family: inherit; resize: none; max-height: 120px; line-height: 1.5; }
 .msg-input:focus { border-color: #5b8af0; }
 .send-btn { width: 42px; height: 42px; border-radius: 8px; background: #5b8af0; border: none; color: #fff; cursor: pointer; font-size: 18px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .send-btn:hover { opacity: 0.85; }
 .send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
-.toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(60px); background: #1e2435; border: 1px solid #2a3050; border-radius: 8px; padding: 10px 18px; font-size: 13px; transition: transform 0.3s; z-index: 999; pointer-events: none; }
-.toast.show { transform: translateX(-50%) translateY(0); }
+/* CONTEXT MENU */
+.ctx-menu { position: fixed; background: #1e2435; border: 1px solid #2a3050; border-radius: 10px; padding: 6px; min-width: 160px; z-index: 500; box-shadow: 0 8px 24px rgba(0,0,0,0.5); }
+.ctx-item { padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 8px; }
+.ctx-item:hover { background: #2a3050; }
+.ctx-item.danger { color: #e05a5a; }
+.ctx-item.danger:hover { background: rgba(224,90,90,0.15); }
+.ctx-sep { height: 1px; background: #2a3050; margin: 4px 0; }
 
-.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 100; opacity: 0; pointer-events: none; transition: opacity 0.2s; }
+/* MODAL */
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 200; opacity: 0; pointer-events: none; transition: opacity 0.2s; }
 .modal-overlay.open { opacity: 1; pointer-events: all; }
-.modal { background: #171b26; border: 1px solid #2a3050; border-radius: 16px; padding: 28px; width: 340px; }
+.modal { background: #171b26; border: 1px solid #2a3050; border-radius: 16px; padding: 28px; width: 360px; max-width: 95vw; }
 .modal h3 { font-size: 16px; font-weight: 700; margin-bottom: 16px; }
-.modal input { width: 100%; padding: 10px 12px; margin-bottom: 12px; background: #1e2435; border: 1px solid #2a3050; border-radius: 8px; color: #e8eaf0; font-size: 14px; outline: none; }
-.modal-footer { display: flex; gap: 8px; justify-content: flex-end; margin-top: 8px; }
+.modal label { font-size: 12px; color: #8b93b0; display: block; margin-bottom: 5px; font-weight: 600; }
+.modal input { width: 100%; padding: 10px 12px; margin-bottom: 14px; background: #1e2435; border: 1px solid #2a3050; border-radius: 8px; color: #e8eaf0; font-size: 14px; outline: none; }
+.modal input:focus { border-color: #5b8af0; }
+.modal-footer { display: flex; gap: 8px; justify-content: flex-end; }
 .btn-cancel { padding: 9px 16px; background: #1e2435; border: 1px solid #2a3050; border-radius: 8px; color: #8b93b0; cursor: pointer; font-size: 13px; font-weight: 600; }
 .btn-ok { padding: 9px 16px; background: #5b8af0; border: none; border-radius: 8px; color: #fff; cursor: pointer; font-size: 13px; font-weight: 600; }
+.btn-danger { padding: 9px 16px; background: none; border: 1px solid #e05a5a; border-radius: 8px; color: #e05a5a; cursor: pointer; font-size: 13px; font-weight: 600; }
+
+/* SETTINGS */
+.color-presets { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+.color-dot { width: 26px; height: 26px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; transition: border-color 0.15s; }
+.color-dot.sel { border-color: #fff; }
+.preview-text { padding: 8px 12px; background: #1e2435; border-radius: 8px; font-size: 14px; font-weight: 600; }
+
+/* TEMPLATES */
+.tpl-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.tpl-card { padding: 12px; border: 1px solid #2a3050; border-radius: 8px; cursor: pointer; text-align: center; transition: all 0.15s; }
+.tpl-card:hover { border-color: #5b8af0; background: #1e2435; }
+.tpl-emoji { font-size: 22px; margin-bottom: 4px; }
+.tpl-name { font-size: 12px; font-weight: 600; color: #8b93b0; }
+
+/* LIGHTBOX */
+#lightbox { position: fixed; inset: 0; background: rgba(0,0,0,0.92); display: none; align-items: center; justify-content: center; z-index: 999; cursor: zoom-out; }
+#lightbox.open { display: flex; }
+#lightbox img { max-width: 90vw; max-height: 90vh; border-radius: 8px; }
+
+/* TOAST */
+#toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(60px); background: #1e2435; border: 1px solid #2a3050; border-radius: 8px; padding: 10px 18px; font-size: 13px; transition: transform 0.3s; z-index: 999; pointer-events: none; }
+#toast.show { transform: translateX(-50%) translateY(0); }
 </style>
 </head>
 <body>
 
+<!-- AUTH -->
 <div id="auth-screen">
   <div class="auth-card">
-    <h2 id="auth-title">ログイン</h2>
-    <div id="username-wrap" style="display:none">
-      <input type="text" id="username" placeholder="ユーザー名">
+    <div class="auth-logo">TeamChat</div>
+    <div class="auth-sub">チームのコミュニケーションをシンプルに</div>
+    <div class="auth-tabs">
+      <button class="auth-tab active" onclick="switchTab('login')">ログイン</button>
+      <button class="auth-tab" onclick="switchTab('signup')">新規登録</button>
     </div>
-    <input type="email" id="email" placeholder="メールアドレス">
-    <input type="password" id="pass" placeholder="パスワード（6文字以上）">
-    <button id="auth-btn" onclick="doAuth()">ログイン</button>
-    <div class="toggle-link" onclick="toggleAuth()" id="toggle-link">→ 新規登録はこちら</div>
-    <div class="err" id="auth-err"></div>
-    <div class="suc" id="auth-ok"></div>
+    <div id="login-form">
+      <input type="email" id="login-email" placeholder="メールアドレス">
+      <input type="password" id="login-pass" placeholder="パスワード">
+      <button class="primary" onclick="doLogin()">ログイン</button>
+    </div>
+    <div id="signup-form" style="display:none">
+      <input type="text" id="signup-username" placeholder="ユーザー名">
+      <input type="email" id="signup-email" placeholder="メールアドレス">
+      <input type="password" id="signup-pass" placeholder="パスワード（6文字以上）">
+      <button class="primary" onclick="doSignup()">登録する</button>
+    </div>
+    <div class="auth-err" id="auth-err"></div>
+    <div class="auth-ok" id="auth-ok"></div>
   </div>
 </div>
 
+<!-- APP -->
 <div id="app">
   <div class="sidebar">
     <div class="sidebar-header">
       <span class="sidebar-logo">TeamChat</span>
-      <button class="add-room-btn hidden" id="add-room-btn" onclick="openModal('room-modal')" title="チャンネル追加">+</button>
+      <button class="icon-btn hidden" id="add-room-btn" onclick="openModal('room-modal')">+</button>
     </div>
-    <div class="rooms-list">
+    <div class="rooms-section">
       <div class="rooms-label">チャンネル</div>
       <div id="rooms-list"></div>
     </div>
     <div class="sidebar-footer">
       <div class="avatar" id="sidebar-avatar">U</div>
       <div class="user-name" id="sidebar-username">...</div>
+      <button class="icon-btn" onclick="openModal('settings-modal')" title="設定">⚙</button>
       <button class="logout-btn" onclick="doLogout()" title="ログアウト">⎋</button>
     </div>
   </div>
@@ -122,25 +187,45 @@ body { font-family: sans-serif; background: #0f1117; color: #e8eaf0; height: 100
       <span class="channel-desc" id="room-desc"></span>
     </div>
     <div class="messages-wrap" id="messages-wrap">
-      <div class="empty-state">
-        <div class="empty-icon">💬</div>
-        <div>チャンネルを選んでください</div>
-      </div>
+      <div class="empty-state"><div class="empty-icon">💬</div><div>チャンネルを選んでください</div></div>
     </div>
+    <div class="typing-bar" id="typing-bar"></div>
     <div class="input-area" id="input-area" style="display:none">
+      <div class="input-toolbar">
+        <button class="toolbar-btn" onclick="openModal('template-modal')">⚡ テンプレート</button>
+        <label class="toolbar-btn" style="cursor:pointer">
+          🖼 画像
+          <input type="file" id="img-input" accept="image/*" style="display:none" onchange="handleImg(this)">
+        </label>
+      </div>
+      <div class="img-preview-wrap" id="img-preview-wrap">
+        <img class="img-preview" id="img-preview" src="">
+        <button class="img-preview-rm" onclick="removeImg()">✕</button>
+      </div>
       <div class="input-row">
-        <input class="msg-input" id="msg-input" type="text" placeholder="メッセージを入力..." onkeydown="onMsgKey(event)">
+        <textarea class="msg-input" id="msg-input" placeholder="メッセージを入力..." rows="1"
+          onkeydown="onMsgKey(event)" oninput="onTyping();autoResize(this)"></textarea>
         <button class="send-btn" id="send-btn" onclick="sendMessage()">➤</button>
       </div>
     </div>
   </div>
 </div>
 
+<!-- CONTEXT MENU -->
+<div class="ctx-menu" id="ctx-menu" style="display:none">
+  <div class="ctx-item" onclick="ctxEdit()">✏️ 名前・説明を編集</div>
+  <div class="ctx-sep"></div>
+  <div class="ctx-item danger" onclick="ctxDelete()">🗑 チャンネルを削除</div>
+</div>
+
+<!-- MODALS -->
 <div class="modal-overlay" id="room-modal">
   <div class="modal">
     <h3>チャンネルを作成</h3>
-    <input type="text" id="new-room-name" placeholder="チャンネル名">
-    <input type="text" id="new-room-desc" placeholder="説明（任意）">
+    <label>チャンネル名</label>
+    <input type="text" id="new-room-name" placeholder="例: プロジェクトA">
+    <label>説明（任意）</label>
+    <input type="text" id="new-room-desc" placeholder="このチャンネルの用途">
     <div class="modal-footer">
       <button class="btn-cancel" onclick="closeModal('room-modal')">キャンセル</button>
       <button class="btn-ok" onclick="createRoom()">作成</button>
@@ -148,132 +233,235 @@ body { font-family: sans-serif; background: #0f1117; color: #e8eaf0; height: 100
   </div>
 </div>
 
-<div class="toast" id="toast"></div>
+<div class="modal-overlay" id="edit-room-modal">
+  <div class="modal">
+    <h3>チャンネルを編集</h3>
+    <label>チャンネル名</label>
+    <input type="text" id="edit-room-name">
+    <label>説明</label>
+    <input type="text" id="edit-room-desc">
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeModal('edit-room-modal')">キャンセル</button>
+      <button class="btn-ok" onclick="saveRoom()">保存</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="delete-room-modal">
+  <div class="modal">
+    <h3>🗑 チャンネルを削除</h3>
+    <p style="color:#8b93b0;font-size:13px;margin-bottom:20px">「<span id="delete-room-name"></span>」を削除します。メッセージもすべて削除されます。この操作は取り消せません。</p>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeModal('delete-room-modal')">キャンセル</button>
+      <button class="btn-danger" onclick="deleteRoom()">削除する</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="settings-modal">
+  <div class="modal">
+    <h3>⚙ 設定</h3>
+    <label>ユーザー名</label>
+    <input type="text" id="settings-username">
+    <label>メッセージの色</label>
+    <div class="color-presets" id="color-presets"></div>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
+      <span style="font-size:12px;color:#8b93b0">カスタム:</span>
+      <input type="color" id="custom-color" style="width:36px;height:30px;border:none;background:none;cursor:pointer;padding:0">
+    </div>
+    <label>プレビュー</label>
+    <div class="preview-text" id="preview-text">こんにちは！メッセージはこの色になります。</div>
+    <div class="modal-footer" style="margin-top:16px">
+      <button class="btn-cancel" onclick="closeModal('settings-modal')">キャンセル</button>
+      <button class="btn-ok" onclick="saveSettings()">保存</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="template-modal">
+  <div class="modal">
+    <h3>⚡ テンプレート</h3>
+    <div class="tpl-grid" id="tpl-grid"></div>
+    <div class="modal-footer" style="margin-top:16px">
+      <button class="btn-cancel" onclick="closeModal('template-modal')">閉じる</button>
+    </div>
+  </div>
+</div>
+
+<div id="lightbox" onclick="this.classList.remove('open')">
+  <img id="lightbox-img" src="">
+</div>
+<div id="toast"></div>
 
 <script>
 var SUPABASE_URL = 'https://nsckdlitgupublaqaypx.supabase.co';
 var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5zY2tkbGl0Z3VwdWJsYXFheXB4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODczNzc3ODgsImV4cCI6MjEwMjk1Mzc4OH0._IhnshSj5O0_aMmWSN6u5Z3iUN6SME7tBAH0p73x2xE';
-
 var sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
 var currentUser = null;
 var currentProfile = null;
 var currentRoom = null;
 var rooms = [];
 var realtimeSub = null;
+var typingCh = null;
 var messagesCache = [];
-var isLoginMode = true;
+var pendingImg = null;
+var typingUsers = {};
+var typingTimer = null;
+var ctxRoomId = null;
+var isAdmin = false;
+
+var COLOR_PRESETS = ['#e8eaf0','#5b8af0','#7c6af5','#4caf88','#f0b44f','#e05a5a','#f06292','#26c6da','#ffb74d','#aed581'];
+var TEMPLATES = [
+  { id:'ok',      emoji:'✅', name:'了解',       text:'了解しました！',                       color:'#4caf88' },
+  { id:'check',   emoji:'👀', name:'確認中',     text:'確認します、少々お待ちください。',       color:'#f0b44f' },
+  { id:'done',    emoji:'🎉', name:'完了',       text:'作業完了しました！',                   color:'#5b8af0' },
+  { id:'urgent',  emoji:'🚨', name:'緊急',       text:'【緊急】対応をお願いします！',           color:'#e05a5a' },
+  { id:'meeting', emoji:'📅', name:'会議',       text:'ミーティングを開始します。',             color:'#7c6af5' },
+  { id:'thanks',  emoji:'🙏', name:'ありがとう', text:'ありがとうございます！助かりました。',   color:'#f06292' },
+  { id:'idea',    emoji:'💡', name:'アイデア',   text:'アイデアがあります！後ほど共有します。', color:'#ffb74d' },
+  { id:'lunch',   emoji:'🍱', name:'昼休み',     text:'お昼休憩に入ります。(12:00〜13:00)',   color:'#aed581' },
+];
 
 // ===== INIT =====
-sb.auth.getSession().then(function(res) {
-  if (res.data.session) onLoggedIn(res.data.session.user);
+renderTemplates();
+renderColorPresets();
+
+sb.auth.getSession().then(function(r) {
+  if (r.data.session) onLoggedIn(r.data.session.user);
 });
-sb.auth.onAuthStateChange(function(event, session) {
+sb.auth.onAuthStateChange(function(e, session) {
   if (session) onLoggedIn(session.user);
   else onLoggedOut();
 });
 
 // ===== AUTH =====
-function toggleAuth() {
-  isLoginMode = !isLoginMode;
-  document.getElementById('auth-title').textContent = isLoginMode ? 'ログイン' : '新規登録';
-  document.getElementById('auth-btn').textContent = isLoginMode ? 'ログイン' : '登録する';
-  document.getElementById('toggle-link').textContent = isLoginMode ? '→ 新規登録はこちら' : '→ ログインはこちら';
-  document.getElementById('username-wrap').style.display = isLoginMode ? 'none' : 'block';
+var authTab = 'login';
+function switchTab(tab) {
+  authTab = tab;
+  document.querySelectorAll('.auth-tab').forEach(function(t, i) {
+    t.classList.toggle('active', (i === 0) === (tab === 'login'));
+  });
+  document.getElementById('login-form').style.display = tab === 'login' ? 'block' : 'none';
+  document.getElementById('signup-form').style.display = tab === 'signup' ? 'block' : 'none';
   document.getElementById('auth-err').textContent = '';
   document.getElementById('auth-ok').textContent = '';
 }
 
-function doAuth() {
-  var email = document.getElementById('email').value.trim();
-  var pass = document.getElementById('pass').value;
-  var username = document.getElementById('username').value.trim();
-  var btn = document.getElementById('auth-btn');
-  document.getElementById('auth-err').textContent = '';
-  if (!email || !pass) { document.getElementById('auth-err').textContent = '入力してください'; return; }
-  btn.disabled = true;
-  btn.textContent = '処理中...';
-
-  if (isLoginMode) {
-    sb.auth.signInWithPassword({ email: email, password: pass }).then(function(res) {
-      btn.disabled = false;
-      btn.textContent = 'ログイン';
-      if (res.error) {
-        var m = res.error.message;
-        if (m === 'Invalid login credentials') m = 'メールまたはパスワードが違います';
-        document.getElementById('auth-err').textContent = '❌ ' + m;
-      }
-    });
-  } else {
-    if (!username) {
-      document.getElementById('auth-err').textContent = 'ユーザー名を入力してください';
-      btn.disabled = false; btn.textContent = '登録する'; return;
+function doLogin() {
+  var email = document.getElementById('login-email').value.trim();
+  var pass = document.getElementById('login-pass').value;
+  if (!email || !pass) { setAuthErr('入力してください'); return; }
+  sb.auth.signInWithPassword({ email: email, password: pass }).then(function(r) {
+    if (r.error) {
+      var m = r.error.message === 'Invalid login credentials' ? 'メールまたはパスワードが違います' : r.error.message;
+      setAuthErr(m);
     }
-    sb.auth.signUp({ email: email, password: pass, options: { data: { username: username } } }).then(function(res) {
-      btn.disabled = false; btn.textContent = '登録する';
-      if (res.error) {
-        document.getElementById('auth-err').textContent = '❌ ' + res.error.message;
-      } else {
-        document.getElementById('auth-ok').textContent = '✅ 登録完了！ログインしてください';
-        toggleAuth();
-      }
-    });
-  }
+  });
 }
 
-function doLogout() {
-  if (realtimeSub) sb.removeChannel(realtimeSub);
-  sb.auth.signOut();
+function doSignup() {
+  var username = document.getElementById('signup-username').value.trim();
+  var email = document.getElementById('signup-email').value.trim();
+  var pass = document.getElementById('signup-pass').value;
+  if (!username || !email || !pass) { setAuthErr('すべて入力してください'); return; }
+  sb.auth.signUp({ email: email, password: pass, options: { data: { username: username } } }).then(function(r) {
+    if (r.error) { setAuthErr(r.error.message); }
+    else { document.getElementById('auth-ok').textContent = '✅ 登録完了！ログインしてください'; switchTab('login'); }
+  });
 }
+
+function setAuthErr(m) { document.getElementById('auth-err').textContent = '❌ ' + m; }
 
 function onLoggedIn(user) {
   currentUser = user;
-  sb.from('profiles').select('*').eq('id', user.id).single().then(function(res) {
-    currentProfile = res.data || { username: user.email, display_color: '#5b8af0', is_admin: false };
+  sb.from('profiles').select('*').eq('id', user.id).single().then(function(r) {
+    currentProfile = r.data || { username: user.email, display_color: '#5b8af0', is_admin: false };
+    isAdmin = currentProfile.is_admin === true;
     updateSidebarUser();
-    // 管理者だけ + ボタンを表示
-    if (currentProfile && currentProfile.is_admin) {
-      document.getElementById('add-room-btn').classList.remove('hidden');
-    }
+    if (isAdmin) document.getElementById('add-room-btn').classList.remove('hidden');
     document.getElementById('auth-screen').style.display = 'none';
     document.getElementById('app').classList.add('visible');
     loadRooms();
+    setupTyping();
   });
 }
 
 function onLoggedOut() {
-  currentUser = null; currentProfile = null; currentRoom = null;
+  currentUser = null; currentProfile = null; currentRoom = null; isAdmin = false;
   document.getElementById('auth-screen').style.display = 'flex';
   document.getElementById('app').classList.remove('visible');
   document.getElementById('add-room-btn').classList.add('hidden');
 }
 
+function doLogout() {
+  if (realtimeSub) sb.removeChannel(realtimeSub);
+  if (typingCh) sb.removeChannel(typingCh);
+  sb.auth.signOut();
+}
+
 function updateSidebarUser() {
-  if (!currentProfile) return;
-  var name = currentProfile.username || currentUser.email;
-  var color = currentProfile.display_color || '#5b8af0';
+  var name = (currentProfile && currentProfile.username) ? currentProfile.username : (currentUser ? currentUser.email : '');
+  var color = (currentProfile && currentProfile.display_color) ? currentProfile.display_color : '#5b8af0';
   document.getElementById('sidebar-username').textContent = name;
   var av = document.getElementById('sidebar-avatar');
   av.textContent = name[0].toUpperCase();
   av.style.background = color;
+  document.getElementById('settings-username').value = name;
+  document.getElementById('custom-color').value = color;
+  document.getElementById('preview-text').style.color = color;
+  updateColorSel(color);
+}
+
+// ===== SETTINGS =====
+function renderColorPresets() {
+  var wrap = document.getElementById('color-presets');
+  wrap.innerHTML = COLOR_PRESETS.map(function(c) {
+    return '<div class="color-dot" style="background:' + c + '" data-color="' + c + '" onclick="selectColor(\'' + c + '\')"></div>';
+  }).join('');
+  document.getElementById('custom-color').addEventListener('input', function() {
+    document.getElementById('preview-text').style.color = this.value;
+    updateColorSel(this.value);
+  });
+}
+function updateColorSel(color) {
+  document.querySelectorAll('.color-dot').forEach(function(el) {
+    el.classList.toggle('sel', el.dataset.color === color);
+  });
+}
+function selectColor(c) {
+  document.getElementById('custom-color').value = c;
+  document.getElementById('preview-text').style.color = c;
+  updateColorSel(c);
+}
+function saveSettings() {
+  var username = document.getElementById('settings-username').value.trim();
+  var color = document.getElementById('custom-color').value;
+  if (!username) { showToast('ユーザー名を入力してください'); return; }
+  sb.from('profiles').update({ username: username, display_color: color }).eq('id', currentUser.id).then(function(r) {
+    if (r.error) { showToast('❌ ' + r.error.message); return; }
+    currentProfile.username = username;
+    currentProfile.display_color = color;
+    updateSidebarUser();
+    closeModal('settings-modal');
+    showToast('✅ 設定を保存しました');
+  });
 }
 
 // ===== ROOMS =====
 function loadRooms() {
-  sb.from('rooms').select('*').order('created_at').then(function(res) {
-    rooms = res.data || [];
+  sb.from('rooms').select('*').order('created_at').then(function(r) {
+    rooms = r.data || [];
     renderRooms();
     if (rooms.length > 0) selectRoom(rooms[0]);
   });
 }
 
 function renderRooms() {
-  var html = '';
-  for (var i = 0; i < rooms.length; i++) {
-    var r = rooms[i];
+  document.getElementById('rooms-list').innerHTML = rooms.map(function(r) {
     var active = currentRoom && currentRoom.id === r.id ? ' active' : '';
-    html += '<div class="room-item' + active + '" onclick="selectRoomById(\'' + r.id + '\')"># ' + esc(r.name) + '</div>';
-  }
-  document.getElementById('rooms-list').innerHTML = html;
+    return '<div class="room-item' + active + '" onclick="selectRoomById(\'' + r.id + '\')" oncontextmenu="showCtx(event,\'' + r.id + '\')"># ' + esc(r.name) + '</div>';
+  }).join('');
 }
 
 function selectRoomById(id) {
@@ -288,6 +476,8 @@ function selectRoom(room) {
   document.getElementById('room-title').textContent = '# ' + room.name;
   document.getElementById('room-desc').textContent = room.description || '';
   document.getElementById('input-area').style.display = 'block';
+  typingUsers = {};
+  renderTyping();
   if (realtimeSub) { sb.removeChannel(realtimeSub); realtimeSub = null; }
   loadMessages();
   subscribeMessages();
@@ -297,16 +487,82 @@ function createRoom() {
   var name = document.getElementById('new-room-name').value.trim();
   var desc = document.getElementById('new-room-desc').value.trim();
   if (!name) return;
-  sb.from('rooms').insert({ name: name, description: desc, created_by: currentUser.id }).select().single().then(function(res) {
-    if (res.error) { showToast('❌ ' + res.error.message); return; }
-    if (res.data) {
-      rooms.push(res.data);
-      renderRooms();
-      closeModal('room-modal');
-      document.getElementById('new-room-name').value = '';
-      document.getElementById('new-room-desc').value = '';
-      selectRoom(res.data);
+  sb.from('rooms').insert({ name: name, description: desc, created_by: currentUser.id }).select().single().then(function(r) {
+    if (r.error) { showToast('❌ ' + r.error.message); return; }
+    rooms.push(r.data);
+    renderRooms();
+    closeModal('room-modal');
+    document.getElementById('new-room-name').value = '';
+    document.getElementById('new-room-desc').value = '';
+    selectRoom(r.data);
+  });
+}
+
+// ===== CONTEXT MENU =====
+function showCtx(e, roomId) {
+  e.preventDefault();
+  if (!isAdmin) return;
+  ctxRoomId = roomId;
+  var menu = document.getElementById('ctx-menu');
+  menu.style.display = 'block';
+  var x = e.clientX, y = e.clientY;
+  if (x + 170 > window.innerWidth) x = window.innerWidth - 175;
+  if (y + 100 > window.innerHeight) y = window.innerHeight - 105;
+  menu.style.left = x + 'px';
+  menu.style.top = y + 'px';
+}
+function hideCtx() { document.getElementById('ctx-menu').style.display = 'none'; }
+
+function ctxEdit() {
+  hideCtx();
+  var room = rooms.find(function(r) { return r.id === ctxRoomId; });
+  if (!room) return;
+  document.getElementById('edit-room-name').value = room.name;
+  document.getElementById('edit-room-desc').value = room.description || '';
+  openModal('edit-room-modal');
+}
+function saveRoom() {
+  var name = document.getElementById('edit-room-name').value.trim();
+  var desc = document.getElementById('edit-room-desc').value.trim();
+  if (!name) return;
+  sb.from('rooms').update({ name: name, description: desc }).eq('id', ctxRoomId).then(function(r) {
+    if (r.error) { showToast('❌ ' + r.error.message); return; }
+    for (var i = 0; i < rooms.length; i++) {
+      if (rooms[i].id === ctxRoomId) { rooms[i].name = name; rooms[i].description = desc; break; }
     }
+    if (currentRoom && currentRoom.id === ctxRoomId) {
+      currentRoom.name = name; currentRoom.description = desc;
+      document.getElementById('room-title').textContent = '# ' + name;
+      document.getElementById('room-desc').textContent = desc;
+    }
+    renderRooms();
+    closeModal('edit-room-modal');
+    showToast('✅ 更新しました');
+  });
+}
+
+function ctxDelete() {
+  hideCtx();
+  var room = rooms.find(function(r) { return r.id === ctxRoomId; });
+  if (!room) return;
+  document.getElementById('delete-room-name').textContent = room.name;
+  openModal('delete-room-modal');
+}
+function deleteRoom() {
+  sb.from('rooms').delete().eq('id', ctxRoomId).then(function(r) {
+    if (r.error) { showToast('❌ ' + r.error.message); return; }
+    rooms = rooms.filter(function(r) { return r.id !== ctxRoomId; });
+    closeModal('delete-room-modal');
+    renderRooms();
+    if (currentRoom && currentRoom.id === ctxRoomId) {
+      currentRoom = null;
+      document.getElementById('room-title').textContent = '# チャンネルを選択';
+      document.getElementById('room-desc').textContent = '';
+      document.getElementById('input-area').style.display = 'none';
+      document.getElementById('messages-wrap').innerHTML = '<div class="empty-state"><div class="empty-icon">💬</div><div>チャンネルを選んでください</div></div>';
+      if (rooms.length > 0) selectRoom(rooms[0]);
+    }
+    showToast('🗑 削除しました');
   });
 }
 
@@ -314,17 +570,12 @@ function createRoom() {
 function loadMessages() {
   var wrap = document.getElementById('messages-wrap');
   wrap.innerHTML = '<div style="text-align:center;padding:40px;color:#8b93b0;font-size:13px">読み込み中...</div>';
-  sb.from('messages')
-    .select('*, profiles(username, display_color)')
-    .eq('room_id', currentRoom.id)
-    .order('created_at', { ascending: true })
-    .limit(100)
-    .then(function(res) {
-      if (res.error) { wrap.innerHTML = '<div style="text-align:center;padding:40px;color:#e05a5a">読み込みエラー: ' + res.error.message + '</div>'; return; }
-      messagesCache = res.data || [];
-      renderMessages();
-      scrollBottom();
-    });
+  sb.from('messages').select('*, profiles(username, display_color)').eq('room_id', currentRoom.id).order('created_at', { ascending: true }).limit(100).then(function(r) {
+    if (r.error) { wrap.innerHTML = '<div style="text-align:center;padding:40px;color:#e05a5a">エラー: ' + esc(r.error.message) + '</div>'; return; }
+    messagesCache = r.data || [];
+    renderMessages();
+    scrollBottom();
+  });
 }
 
 function renderMessages() {
@@ -336,64 +587,54 @@ function renderMessages() {
   var html = '';
   var lastUser = null;
   for (var i = 0; i < messagesCache.length; i++) {
-    var msg = messagesCache[i];
-    var profile = msg.profiles || {};
-    var name = profile.username || '不明';
-    var color = msg.color || profile.display_color || '#5b8af0';
-    var time = new Date(msg.created_at).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
-    var isFirst = msg.user_id !== lastUser;
-    lastUser = msg.user_id;
-    html += '<div class="msg' + (isFirst ? ' first-in-group' : '') + '">';
-    html += isFirst
-      ? '<div class="msg-avatar" style="background:' + color + '33;color:' + color + '">' + esc(name[0].toUpperCase()) + '</div>'
-      : '<div class="msg-spacer"></div>';
-    html += '<div class="msg-body">';
-    if (isFirst) html += '<div class="msg-header"><span class="msg-author" style="color:' + color + '">' + esc(name) + '</span><span class="msg-time">' + time + '</span></div>';
-    html += '<div class="msg-text">' + esc(msg.content || '') + '</div>';
-    html += '</div></div>';
+    html += buildMsgHtml(messagesCache[i], lastUser);
+    lastUser = messagesCache[i].user_id;
   }
   wrap.innerHTML = html;
 }
 
-function subscribeMessages() {
-  realtimeSub = sb.channel('room-' + currentRoom.id)
-    .on('postgres_changes', {
-      event: 'INSERT', schema: 'public', table: 'messages',
-      filter: 'room_id=eq.' + currentRoom.id
-    }, function(payload) {
-      sb.from('messages').select('*, profiles(username, display_color)').eq('id', payload.new.id).single().then(function(res) {
-        if (res.data) {
-          var wasEmpty = messagesCache.length === 0;
-          messagesCache.push(res.data);
-          if (wasEmpty) renderMessages();
-          else appendMessage(res.data);
-          scrollBottom();
-        }
-      });
-    })
-    .subscribe();
-}
-
-function appendMessage(msg) {
-  var wrap = document.getElementById('messages-wrap');
-  var empty = wrap.querySelector('.empty-state');
-  if (empty) empty.remove();
+function buildMsgHtml(msg, lastUserId) {
   var profile = msg.profiles || {};
   var name = profile.username || '不明';
   var color = msg.color || profile.display_color || '#5b8af0';
   var time = new Date(msg.created_at).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
-  var prev = messagesCache[messagesCache.length - 2];
-  var isFirst = !prev || prev.user_id !== msg.user_id;
-  var el = document.createElement('div');
-  el.className = 'msg' + (isFirst ? ' first-in-group' : '');
+  var isFirst = msg.user_id !== lastUserId;
   var avatar = isFirst
-    ? '<div class="msg-avatar" style="background:' + color + '33;color:' + color + '">' + esc(name[0].toUpperCase()) + '</div>'
+    ? '<div class="msg-avatar" style="background:' + color + '22;color:' + color + '">' + esc(name[0].toUpperCase()) + '</div>'
     : '<div class="msg-spacer"></div>';
   var header = isFirst
     ? '<div class="msg-header"><span class="msg-author" style="color:' + color + '">' + esc(name) + '</span><span class="msg-time">' + time + '</span></div>'
     : '';
-  el.innerHTML = avatar + '<div class="msg-body">' + header + '<div class="msg-text">' + esc(msg.content || '') + '</div></div>';
-  wrap.appendChild(el);
+  var content = '';
+  if (msg.message_type === 'image' && msg.image_url) {
+    content = '<img class="msg-img" src="' + esc(msg.image_url) + '" onclick="openLightbox(\'' + esc(msg.image_url) + '\')" loading="lazy">';
+    if (msg.content) content += '<div class="msg-text" style="color:' + color + '">' + esc(msg.content) + '</div>';
+  } else if (msg.message_type === 'template') {
+    content = '<div class="template-bubble" style="background:' + color + '22;color:' + color + ';border:1px solid ' + color + '44">' + esc(msg.content) + '</div>';
+  } else {
+    content = '<div class="msg-text" style="color:' + color + '">' + esc(msg.content || '') + '</div>';
+  }
+  return '<div class="msg' + (isFirst ? ' first-in-group' : '') + '">' + avatar + '<div class="msg-body">' + header + content + '</div></div>';
+}
+
+function subscribeMessages() {
+  realtimeSub = sb.channel('room-msg-' + currentRoom.id)
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: 'room_id=eq.' + currentRoom.id }, function(payload) {
+      sb.from('messages').select('*, profiles(username, display_color)').eq('id', payload.new.id).single().then(function(r) {
+        if (!r.data) return;
+        var prevUser = messagesCache.length > 0 ? messagesCache[messagesCache.length - 1].user_id : null;
+        messagesCache.push(r.data);
+        var wrap = document.getElementById('messages-wrap');
+        var empty = wrap.querySelector('.empty-state');
+        if (empty) { wrap.innerHTML = ''; }
+        var el = document.createElement('div');
+        el.innerHTML = buildMsgHtml(r.data, prevUser);
+        wrap.appendChild(el.firstChild);
+        var atBottom = wrap.scrollHeight - wrap.scrollTop - wrap.clientHeight < 100;
+        if (atBottom) scrollBottom();
+      });
+    })
+    .subscribe();
 }
 
 // ===== SEND =====
@@ -401,56 +642,125 @@ function sendMessage() {
   if (!currentRoom || !currentUser) return;
   var input = document.getElementById('msg-input');
   var text = input.value.trim();
-  if (!text) return;
+  if (!text && !pendingImg) return;
   var btn = document.getElementById('send-btn');
   btn.disabled = true;
   var color = (currentProfile && currentProfile.display_color) ? currentProfile.display_color : '#5b8af0';
-  sb.from('messages').insert({
-    room_id: currentRoom.id,
-    user_id: currentUser.id,
-    content: text,
-    message_type: 'text',
-    color: color
-  }).then(function(res) {
-    btn.disabled = false;
-    if (res.error) {
-      showToast('❌ 送信失敗: ' + res.error.message);
-    } else {
-      input.value = '';
-      input.focus();
-    }
+
+  if (pendingImg) {
+    var ext = pendingImg.name.split('.').pop();
+    var path = currentUser.id + '/' + Date.now() + '.' + ext;
+    sb.storage.from('chat-images').upload(path, pendingImg).then(function(up) {
+      if (up.error) { showToast('❌ 画像アップ失敗: ' + up.error.message); btn.disabled = false; return; }
+      var urlData = sb.storage.from('chat-images').getPublicUrl(path);
+      sb.from('messages').insert({ room_id: currentRoom.id, user_id: currentUser.id, content: text || null, message_type: 'image', image_url: urlData.data.publicUrl, color: color }).then(function() {
+        btn.disabled = false; input.value = ''; input.style.height = 'auto'; removeImg(); input.focus();
+      });
+    });
+  } else {
+    sb.from('messages').insert({ room_id: currentRoom.id, user_id: currentUser.id, content: text, message_type: 'text', color: color }).then(function(r) {
+      btn.disabled = false;
+      if (r.error) { showToast('❌ 送信失敗: ' + r.error.message); return; }
+      input.value = ''; input.style.height = 'auto'; input.focus();
+      clearTypingSignal();
+    });
+  }
+}
+
+function sendTemplate(tpl) {
+  if (!currentRoom || !currentUser) return;
+  var color = tpl.color;
+  sb.from('messages').insert({ room_id: currentRoom.id, user_id: currentUser.id, content: tpl.emoji + ' ' + tpl.text, message_type: 'template', color: color }).then(function() {
+    closeModal('template-modal');
   });
 }
 
 function onMsgKey(e) {
-  if (e.key === 'Enter') { e.preventDefault(); sendMessage(); }
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+}
+
+// ===== IMAGE =====
+function handleImg(input) {
+  var file = input.files[0];
+  if (!file) return;
+  if (file.size > 5 * 1024 * 1024) { showToast('❌ 5MB以下の画像を選択してください'); return; }
+  pendingImg = file;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    document.getElementById('img-preview').src = e.target.result;
+    document.getElementById('img-preview-wrap').style.display = 'block';
+  };
+  reader.readAsDataURL(file);
+  input.value = '';
+}
+function removeImg() {
+  pendingImg = null;
+  document.getElementById('img-preview-wrap').style.display = 'none';
+  document.getElementById('img-preview').src = '';
+}
+
+// ===== TYPING =====
+function setupTyping() {
+  typingCh = sb.channel('typing-global');
+  typingCh.on('broadcast', { event: 'typing' }, function(payload) {
+    var p = payload.payload;
+    if (!p || p.user_id === currentUser.id) return;
+    if (p.room_id !== (currentRoom && currentRoom.id)) return;
+    if (p.typing) {
+      typingUsers[p.user_id] = p.username;
+    } else {
+      delete typingUsers[p.user_id];
+    }
+    renderTyping();
+  }).subscribe();
+}
+function onTyping() {
+  if (!typingCh || !currentRoom || !currentProfile) return;
+  typingCh.send({ type: 'broadcast', event: 'typing', payload: { user_id: currentUser.id, username: currentProfile.username, room_id: currentRoom.id, typing: true } });
+  clearTimeout(typingTimer);
+  typingTimer = setTimeout(clearTypingSignal, 3000);
+}
+function clearTypingSignal() {
+  if (!typingCh || !currentRoom || !currentProfile) return;
+  typingCh.send({ type: 'broadcast', event: 'typing', payload: { user_id: currentUser.id, username: currentProfile.username, room_id: currentRoom.id, typing: false } });
+}
+function renderTyping() {
+  var el = document.getElementById('typing-bar');
+  var users = Object.values(typingUsers);
+  if (users.length === 0) { el.innerHTML = ''; return; }
+  el.innerHTML = esc(users.join('、')) + ' が入力中 <span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span>';
+}
+
+// ===== TEMPLATES =====
+function renderTemplates() {
+  var grid = document.getElementById('tpl-grid');
+  if (!grid) return;
+  grid.innerHTML = TEMPLATES.map(function(t) {
+    return '<div class="tpl-card" onclick="sendTemplate(' + JSON.stringify(t).replace(/"/g,'&quot;') + ')">'
+      + '<div class="tpl-emoji">' + t.emoji + '</div>'
+      + '<div class="tpl-name">' + esc(t.name) + '</div>'
+      + '</div>';
+  }).join('');
 }
 
 // ===== HELPERS =====
-function scrollBottom() {
-  var wrap = document.getElementById('messages-wrap');
-  wrap.scrollTop = wrap.scrollHeight;
-}
-
-function esc(str) {
-  if (!str) return '';
-  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-
-var toastTimer;
-function showToast(msg) {
-  var el = document.getElementById('toast');
-  el.textContent = msg;
-  el.classList.add('show');
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(function() { el.classList.remove('show'); }, 3000);
-}
-
+function autoResize(el) { el.style.height = 'auto'; el.style.height = Math.min(el.scrollHeight, 120) + 'px'; }
+function scrollBottom() { var w = document.getElementById('messages-wrap'); w.scrollTop = w.scrollHeight; }
+function openLightbox(url) { document.getElementById('lightbox-img').src = url; document.getElementById('lightbox').classList.add('open'); }
+function esc(str) { if (!str) return ''; return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function openModal(id) { document.getElementById(id).classList.add('open'); }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+var toastTimer2;
+function showToast(msg) {
+  var el = document.getElementById('toast'); el.textContent = msg; el.classList.add('show');
+  clearTimeout(toastTimer2); toastTimer2 = setTimeout(function() { el.classList.remove('show'); }, 3000);
+}
+
 document.addEventListener('click', function(e) {
+  hideCtx();
   if (e.target.classList.contains('modal-overlay')) closeModal(e.target.id);
 });
+document.addEventListener('keydown', function(e) { if (e.key === 'Escape') { hideCtx(); document.querySelectorAll('.modal-overlay.open').forEach(function(m) { closeModal(m.id); }); } });
 </script>
 </body>
 </html>
