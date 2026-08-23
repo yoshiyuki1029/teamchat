@@ -157,6 +157,27 @@ body { font-family: 'Segoe UI','Hiragino Sans','Yu Gothic UI',sans-serif; backgr
 .user-list-item .uname { font-size: 13px; font-weight: 600; }
 .user-list-item .uemail { font-size: 11px; color: #8b93b0; }
 
+/* SERVER SETTINGS */
+.member-item { display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;margin-bottom:4px;background:#1e2435; }
+.member-info { flex:1;min-width:0; }
+.member-name { font-size:13px;font-weight:600; }
+.member-role { font-size:11px;color:#8b93b0; }
+.member-actions { display:flex;gap:6px; }
+.member-btn { padding:5px 10px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;border:none; }
+.member-btn.admin { background:#5b8af033;color:#5b8af0;border:1px solid #5b8af0; }
+.member-btn.kick { background:#f0b44f33;color:#f0b44f;border:1px solid #f0b44f; }
+.member-btn.ban { background:#e05a5a33;color:#e05a5a;border:1px solid #e05a5a; }
+.member-btn.unban { background:#4caf8833;color:#4caf88;border:1px solid #4caf88; }
+.perm-item { display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-radius:8px;margin-bottom:4px;background:#1e2435; }
+.perm-name { font-size:13px;font-weight:600; }
+.toggle-switch { position:relative;width:40px;height:22px;cursor:pointer; }
+.toggle-switch input { opacity:0;width:0;height:0; }
+.toggle-slider { position:absolute;inset:0;background:#2a3050;border-radius:11px;transition:0.2s; }
+.toggle-slider::before { content:'';position:absolute;width:16px;height:16px;left:3px;top:3px;background:#8b93b0;border-radius:50%;transition:0.2s; }
+.toggle-switch input:checked + .toggle-slider { background:#5b8af0; }
+.toggle-switch input:checked + .toggle-slider::before { transform:translateX(18px);background:#fff; }
+.readonly-badge { font-size:10px;padding:2px 6px;background:#f0b44f22;color:#f0b44f;border:1px solid #f0b44f44;border-radius:4px;margin-left:4px; }
+
 /* LIGHTBOX */
 #lightbox { position: fixed; inset: 0; background: rgba(0,0,0,0.92); display: none; align-items: center; justify-content: center; z-index: 999; cursor: zoom-out; }
 #lightbox.open { display: flex; }
@@ -201,8 +222,11 @@ body { font-family: 'Segoe UI','Hiragino Sans','Yu Gothic UI',sans-serif; backgr
 <div id="app">
   <div class="sidebar">
     <div class="sidebar-header">
-      <span class="sidebar-logo">TeamChat</span>
-      <button class="icon-btn" onclick="openModal('settings-modal')" title="設定">⚙</button>
+      <span class="sidebar-logo" id="server-logo" onclick="showRules()" style="cursor:pointer" title="サーバー情報">💬 TeamChat</span>
+      <div style="display:flex;gap:2px">
+        <button class="icon-btn hidden" id="server-settings-btn" onclick="openServerModal()" title="サーバー設定">🛠</button>
+        <button class="icon-btn" onclick="openModal('settings-modal')" title="個人設定">⚙</button>
+      </div>
     </div>
     <div class="sidebar-scroll">
       <div class="sidebar-section">
@@ -364,10 +388,28 @@ body { font-family: 'Segoe UI','Hiragino Sans','Yu Gothic UI',sans-serif; backgr
   </div>
 </div>
 
-<div id="lightbox" onclick="this.classList.remove('open')"><img id="lightbox-img" src=""></div>
-<div id="toast"></div>
-
-<script>
+<!-- SERVER SETTINGS MODAL -->
+<div class="modal-overlay" id="server-modal">
+  <div class="modal" style="width:480px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+      <h3 style="margin:0">⚙ サーバー設定</h3>
+    </div>
+    <!-- Tabs -->
+    <div style="display:flex;gap:4px;background:#1e2435;border-radius:8px;padding:4px;margin-bottom:20px" id="server-tabs">
+      <button class="auth-tab active" onclick="switchServerTab('general')">基本</button>
+      <button class="auth-tab" onclick="switchServerTab('members')">メンバー</button>
+      <button class="auth-tab" onclick="switchServerTab('channels')">チャンネル権限</button>
+    </div>
+    <!-- General -->
+    <div id="server-tab-general">
+      <label>サーバーアイコン（絵文字）</label>
+      <input type="text" id="server-icon" placeholder="💬" style="width:80px;text-align:center;font-size:24px">
+      <label>サーバー名</label>
+      <input type="text" id="server-name" placeholder="TeamChat">
+      <label>説明</label>
+      <input type="text" id="server-desc" placeholder="サーバーの説明">
+      <label>ルール</label>
+      <textarea id="server-rules" placeholder="サーバーのルールを入力..." style="width:100%;padding:10px 12px;margin-bottom:14px;background:#1e2435;border:1px solid #2a3050;border-radius:8px;color:#e8eaf0;font-size:14px;outline:none;resize:vertical;min-height:80px;font-family:inherit"></textare
 var SUPABASE_URL = 'https://nsckdlitgupublaqaypx.supabase.co';
 var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5zY2tkbGl0Z3VwdWJsYXFheXB4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODczNzc3ODgsImV4cCI6MjEwMjk1Mzc4OH0._IhnshSj5O0_aMmWSN6u5Z3iUN6SME7tBAH0p73x2xE';
 var sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -457,6 +499,9 @@ function onLoggedIn(user) {
     isAdmin = currentProfile.is_admin===true || currentProfile.is_admin==='true';
     updateSidebarUser();
     applyAdminUI();
+    // Show server settings btn for admins
+    var srvBtn = document.getElementById('server-settings-btn');
+    if (srvBtn) srvBtn.classList.toggle('hidden', !isAdmin);
     document.getElementById('auth-screen').style.display='none';
     document.getElementById('app').classList.add('visible');
     if(!loginInitialized) {
@@ -466,6 +511,8 @@ function onLoggedIn(user) {
       setupPresence();
       setupTyping();
       setupDmSubscription();
+      loadServerSettings();
+      checkBanStatus();
     }
   });
 }
@@ -665,9 +712,18 @@ function selectRoomById(id){for(var i=0;i<rooms.length;i++){if(rooms[i].id===id)
 function selectRoom(room) {
   currentRoom=room; currentDmUser=null; viewMode='room';
   renderRooms(); renderDmList();
-  document.getElementById('room-title').textContent='# '+room.name;
+  document.getElementById('room-title').textContent='# '+room.name+(room.is_readonly?' 🔒':'');
   document.getElementById('room-desc').textContent=room.description||'';
-  document.getElementById('input-area').style.display='block';
+  var inputArea=document.getElementById('input-area');
+  if(room.is_readonly && !isAdmin){
+    inputArea.style.display='block';
+    inputArea.innerHTML='<div style="text-align:center;padding:12px;color:#8b93b0;font-size:13px">🔒 このチャンネルは読み取り専用です</div>';
+  } else {
+    if(!inputArea.querySelector('.msg-input')){
+      rebuildInputArea(inputArea);
+    }
+    inputArea.style.display='block';
+  }
   document.getElementById('typing-bar').innerHTML='';
   typingUsers={};
   if(realtimeSub){sb.removeChannel(realtimeSub);realtimeSub=null;}
@@ -906,11 +962,16 @@ function buildMsgHtml(msg, lastUserId) {
   wrap.id = 'msg-' + msg.id;
 
   // Avatar
+  // Handle gradient color
+  var isGradient = color && color.indexOf('gradient:') === 0;
+  var gradColors = isGradient ? color.replace('gradient:','').split(',') : null;
+  var displayColor = isGradient ? (gradColors[0] || '#5b8af0') : color;
+
   var avatarEl = document.createElement('div');
   if (isFirst) {
     avatarEl.className = 'msg-avatar';
-    avatarEl.style.background = color + '22';
-    avatarEl.style.color = color;
+    avatarEl.style.background = displayColor + '22';
+    avatarEl.style.color = displayColor;
     avatarEl.textContent = name[0].toUpperCase();
   } else {
     avatarEl.className = 'msg-spacer';
@@ -926,7 +987,14 @@ function buildMsgHtml(msg, lastUserId) {
     headerEl.className = 'msg-header';
     var authorEl = document.createElement('span');
     authorEl.className = 'msg-author';
-    authorEl.style.color = color;
+    if (isGradient && gradColors) {
+      authorEl.style.background = 'linear-gradient(135deg,' + gradColors[0] + ',' + gradColors[1] + ')';
+      authorEl.style.webkitBackgroundClip = 'text';
+      authorEl.style.webkitTextFillColor = 'transparent';
+      authorEl.style.backgroundClip = 'text';
+    } else {
+      authorEl.style.color = color;
+    }
     authorEl.textContent = name;
     authorEl.addEventListener('click', (function(n){ return function(){ mentionUser(n); }; })(name));
     var timeEl = document.createElement('span');
@@ -937,8 +1005,18 @@ function buildMsgHtml(msg, lastUserId) {
     body.appendChild(headerEl);
   }
 
-  // Content
-  body.appendChild(buildContent(msg, color));
+  // Content - apply gradient to text too
+  var contentEl = buildContent(msg, color);
+  if (isGradient && gradColors) {
+    var textEls = contentEl.querySelectorAll('.msg-text');
+    textEls.forEach(function(el) {
+      el.style.background = 'linear-gradient(135deg,' + gradColors[0] + ',' + gradColors[1] + ')';
+      el.style.webkitBackgroundClip = 'text';
+      el.style.webkitTextFillColor = 'transparent';
+      el.style.backgroundClip = 'text';
+    });
+  }
+  body.appendChild(contentEl);
   wrap.appendChild(body);
 
   // Actions
@@ -1358,6 +1436,395 @@ function renderTemplates() {
     g.appendChild(div);
   }
 }
+
+
+// ===== HELPERS =====
+function autoResize(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,120)+'px';}
+function scrollBottom(){var w=document.getElementById('messages-wrap');w.scrollTop=w.scrollHeight;}
+function openLightbox(url){document.getElementById('lightbox-img').src=url;document.getElementById('lightbox').classList.add('open');}
+function esc(str){if(!str)return'';return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function openModal(id){
+  if(id==='dm-user-modal')loadDmUserModal();
+  document.getElementById(id).classList.add('open');
+}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+function showToast(msg){
+  var el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');
+  clearTimeout(toastTimer);toastTimer=setTimeout(function(){el.classList.remove('show');},3000);
+}
+
+function rebuildInputArea(inputArea) {
+  inputArea.innerHTML = '';
+  // Toolbar
+  var toolbar = document.createElement('div');
+  toolbar.className = 'input-toolbar';
+  var tplBtn = document.createElement('button');
+  tplBtn.className = 'toolbar-btn';
+  tplBtn.textContent = '⚡ テンプレート';
+  tplBtn.addEventListener('click', function() { openModal('template-modal'); });
+  toolbar.appendChild(tplBtn);
+  var imgLabel = document.createElement('label');
+  imgLabel.className = 'toolbar-btn';
+  imgLabel.style.cursor = 'pointer';
+  imgLabel.textContent = '🖼 画像';
+  var imgInput = document.createElement('input');
+  imgInput.type = 'file';
+  imgInput.id = 'img-input';
+  imgInput.accept = 'image/*';
+  imgInput.style.display = 'none';
+  imgInput.addEventListener('change', function() { handleImg(this); });
+  imgLabel.appendChild(imgInput);
+  toolbar.appendChild(imgLabel);
+  inputArea.appendChild(toolbar);
+  // Preview
+  var previewWrap = document.createElement('div');
+  previewWrap.className = 'img-preview-wrap';
+  previewWrap.id = 'img-preview-wrap';
+  var previewImg = document.createElement('img');
+  previewImg.className = 'img-preview';
+  previewImg.id = 'img-preview';
+  var previewRm = document.createElement('button');
+  previewRm.className = 'img-preview-rm';
+  previewRm.textContent = '✕';
+  previewRm.addEventListener('click', removeImg);
+  previewWrap.appendChild(previewImg);
+  previewWrap.appendChild(previewRm);
+  inputArea.appendChild(previewWrap);
+  // Mention list
+  var mentionList = document.createElement('div');
+  mentionList.className = 'mention-list';
+  mentionList.id = 'mention-list';
+  inputArea.appendChild(mentionList);
+  // Input row
+  var inputRow = document.createElement('div');
+  inputRow.className = 'input-row';
+  var textarea = document.createElement('textarea');
+  textarea.className = 'msg-input';
+  textarea.id = 'msg-input';
+  textarea.placeholder = 'メッセージを入力... (@でメンション)';
+  textarea.rows = 1;
+  textarea.addEventListener('keydown', onMsgKey);
+  textarea.addEventListener('input', function() { onInputChange(); autoResize(this); });
+  var sendBtn = document.createElement('button');
+  sendBtn.className = 'send-btn';
+  sendBtn.id = 'send-btn';
+  sendBtn.textContent = '➤';
+  sendBtn.addEventListener('click', sendMessage);
+  inputRow.appendChild(textarea);
+  inputRow.appendChild(sendBtn);
+  inputArea.appendChild(inputRow);
+}
+
+
+// ===== SERVER SETTINGS =====
+var serverSettings = { name: 'TeamChat', icon: '💬', description: '', rules: '', message_retention_days: 0 };
+
+function loadServerSettings() {
+  sb.from('server_settings').select('*').eq('id', 1).single().then(function(r) {
+    if (r.data) {
+      serverSettings = r.data;
+      applyServerSettings();
+    }
+  });
+}
+
+function applyServerSettings() {
+  var logo = document.getElementById('server-logo');
+  if (logo) logo.textContent = (serverSettings.icon || '💬') + ' ' + (serverSettings.name || 'TeamChat');
+  document.title = serverSettings.name || 'TeamChat';
+}
+
+function openServerModal() {
+  document.getElementById('server-icon').value = serverSettings.icon || '💬';
+  document.getElementById('server-name').value = serverSettings.name || '';
+  document.getElementById('server-desc').value = serverSettings.description || '';
+  document.getElementById('server-rules').value = serverSettings.rules || '';
+  document.getElementById('server-retention').value = serverSettings.message_retention_days || 0;
+  switchServerTab('general');
+  openModal('server-modal');
+  loadMembersList();
+  loadChannelPerms();
+}
+
+function switchServerTab(tab) {
+  var tabs = ['general', 'members', 'channels'];
+  tabs.forEach(function(t) {
+    var el = document.getElementById('server-tab-' + t);
+    if (el) el.style.display = t === tab ? 'block' : 'none';
+  });
+  document.querySelectorAll('#server-tabs .auth-tab').forEach(function(btn, i) {
+    btn.classList.toggle('active', ['general','members','channels'][i] === tab);
+  });
+  if (tab === 'members') loadMembersList();
+  if (tab === 'channels') loadChannelPerms();
+}
+
+function saveServerSettings() {
+  var data = {
+    name: document.getElementById('server-name').value.trim() || 'TeamChat',
+    icon: document.getElementById('server-icon').value.trim() || '💬',
+    description: document.getElementById('server-desc').value.trim(),
+    rules: document.getElementById('server-rules').value.trim(),
+    message_retention_days: parseInt(document.getElementById('server-retention').value) || 0
+  };
+  sb.from('server_settings').update(data).eq('id', 1).then(function(r) {
+    if (r.error) { showToast('❌ ' + r.error.message); return; }
+    serverSettings = Object.assign(serverSettings, data);
+    applyServerSettings();
+    closeModal('server-modal');
+    showToast('✅ サーバー設定を保存しました');
+    // Apply retention if set
+    if (data.message_retention_days > 0) applyMessageRetention(data.message_retention_days);
+  });
+}
+
+function applyMessageRetention(days) {
+  var cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - days);
+  sb.from('messages').delete().lt('created_at', cutoff.toISOString()).then(function(r) {
+    if (!r.error) showToast('🗑 ' + days + '日以上前のメッセージを削除しました');
+  });
+}
+
+function showRules() {
+  var titleEl = document.getElementById('rules-modal-title');
+  var contentEl = document.getElementById('rules-modal-content');
+  var text = '';
+  if (serverSettings.description) text += '📖 説明
+' + serverSettings.description + '
+
+';
+  if (serverSettings.rules) text += '📋 ルール
+' + serverSettings.rules;
+  if (!text) text = 'サーバーの説明・ルールは設定されていません。';
+  titleEl.textContent = (serverSettings.icon || '💬') + ' ' + (serverSettings.name || 'TeamChat');
+  contentEl.textContent = text;
+  openModal('rules-modal');
+}
+
+// ===== MEMBER MANAGEMENT =====
+function loadMembersList() {
+  var el = document.getElementById('members-list');
+  if (!el) return;
+  el.innerHTML = '<div style="text-align:center;padding:20px;color:#8b93b0">読み込み中...</div>';
+  
+  sb.from('banned_users').select('user_id').then(function(banRes) {
+    var bannedIds = (banRes.data || []).map(function(b) { return b.user_id; });
+    
+    sb.from('profiles').select('*').order('username').then(function(r) {
+      if (r.error) { el.innerHTML = '<div style="color:#e05a5a">エラー</div>'; return; }
+      el.innerHTML = '';
+      var profiles = r.data || [];
+      
+      profiles.forEach(function(p) {
+        var isSelf = p.id === currentUser.id;
+        var isBanned = bannedIds.indexOf(p.id) !== -1;
+        var color = p.display_color || '#5b8af0';
+        
+        var div = document.createElement('div');
+        div.className = 'member-item';
+        div.id = 'member-' + p.id;
+        
+        var avatarEl = document.createElement('div');
+        avatarEl.className = 'avatar';
+        avatarEl.style.background = color;
+        avatarEl.style.width = '32px';
+        avatarEl.style.height = '32px';
+        avatarEl.style.fontSize = '13px';
+        avatarEl.style.flexShrink = '0';
+        avatarEl.textContent = (p.username || '?')[0].toUpperCase();
+        
+        var infoEl = document.createElement('div');
+        infoEl.className = 'member-info';
+        var nameEl = document.createElement('div');
+        nameEl.className = 'member-name';
+        nameEl.textContent = p.username || p.id.slice(0,8);
+        var roleEl = document.createElement('div');
+        roleEl.className = 'member-role';
+        roleEl.textContent = isBanned ? '🚫 BAN済み' : (p.is_admin ? '👑 管理者' : '👤 メンバー');
+        infoEl.appendChild(nameEl);
+        infoEl.appendChild(roleEl);
+        
+        var actionsEl = document.createElement('div');
+        actionsEl.className = 'member-actions';
+        
+        if (!isSelf) {
+          if (!isBanned) {
+            // Admin toggle
+            var adminBtn = document.createElement('button');
+            adminBtn.className = 'member-btn admin';
+            adminBtn.textContent = p.is_admin ? '管理者解除' : '管理者';
+            (function(profile, btn) {
+              btn.addEventListener('click', function() { toggleAdmin(profile, btn); });
+            })(p, adminBtn);
+            actionsEl.appendChild(adminBtn);
+
+            // Kick
+            var kickBtn = document.createElement('button');
+            kickBtn.className = 'member-btn kick';
+            kickBtn.textContent = 'キック';
+            (function(pid) {
+              kickBtn.addEventListener('click', function() { kickUser(pid); });
+            })(p.id);
+            actionsEl.appendChild(kickBtn);
+
+            // Ban
+            var banBtn = document.createElement('button');
+            banBtn.className = 'member-btn ban';
+            banBtn.textContent = 'BAN';
+            (function(pid, pname) {
+              banBtn.addEventListener('click', function() { banUser(pid, pname); });
+            })(p.id, p.username);
+            actionsEl.appendChild(banBtn);
+          } else {
+            // Unban
+            var unbanBtn = document.createElement('button');
+            unbanBtn.className = 'member-btn unban';
+            unbanBtn.textContent = 'BAN解除';
+            (function(pid) {
+              unbanBtn.addEventListener('click', function() { unbanUser(pid); });
+            })(p.id);
+            actionsEl.appendChild(unbanBtn);
+          }
+        }
+        
+        div.appendChild(avatarEl);
+        div.appendChild(infoEl);
+        div.appendChild(actionsEl);
+        el.appendChild(div);
+      });
+    });
+  });
+}
+
+function toggleAdmin(profile, btn) {
+  var newVal = !profile.is_admin;
+  sb.from('profiles').update({ is_admin: newVal }).eq('id', profile.id).then(function(r) {
+    if (r.error) { showToast('❌ ' + r.error.message); return; }
+    profile.is_admin = newVal;
+    btn.textContent = newVal ? '管理者解除' : '管理者';
+    var roleEl = document.getElementById('member-' + profile.id);
+    if (roleEl) {
+      var role = roleEl.querySelector('.member-role');
+      if (role) role.textContent = newVal ? '👑 管理者' : '👤 メンバー';
+    }
+    showToast(newVal ? '👑 管理者に設定しました' : '管理者を解除しました');
+    loadAllProfiles();
+  });
+}
+
+function kickUser(userId) {
+  if (!confirm('このユーザーをキックしますか？（再ログイン可能）')) return;
+  // キックはセッション削除が必要だがフロントでは不可のため、メッセージで通知
+  showToast('⚠️ キック機能はサーバー側の設定が必要です。メンバーにログアウトを依頼してください。');
+}
+
+function banUser(userId, username) {
+  if (!confirm('「' + username + '」をBANしますか？')) return;
+  sb.from('banned_users').insert({ user_id: userId, banned_by: currentUser.id }).then(function(r) {
+    if (r.error) { showToast('❌ ' + r.error.message); return; }
+    showToast('🚫 BANしました');
+    loadMembersList();
+  });
+}
+
+function unbanUser(userId) {
+  sb.from('banned_users').delete().eq('user_id', userId).then(function(r) {
+    if (r.error) { showToast('❌ ' + r.error.message); return; }
+    showToast('✅ BAN解除しました');
+    loadMembersList();
+  });
+}
+
+// ===== CHANNEL PERMISSIONS =====
+function loadChannelPerms() {
+  var el = document.getElementById('channel-perms-list');
+  if (!el) return;
+  el.innerHTML = '';
+  
+  rooms.forEach(function(room) {
+    var div = document.createElement('div');
+    div.className = 'perm-item';
+    
+    var nameEl = document.createElement('div');
+    nameEl.className = 'perm-name';
+    nameEl.innerHTML = '# ' + esc(room.name) + (room.is_readonly ? ' <span class="readonly-badge">読み取り専用</span>' : '');
+    
+    var label = document.createElement('label');
+    label.className = 'toggle-switch';
+    label.title = '読み取り専用';
+    
+    var input = document.createElement('input');
+    input.type = 'checkbox';
+    input.checked = room.is_readonly || false;
+    
+    var slider = document.createElement('span');
+    slider.className = 'toggle-slider';
+    
+    (function(r, inp, nameDiv) {
+      inp.addEventListener('change', function() {
+        sb.from('rooms').update({ is_readonly: inp.checked }).eq('id', r.id).then(function(res) {
+          if (res.error) { showToast('❌ ' + res.error.message); inp.checked = !inp.checked; return; }
+          r.is_readonly = inp.checked;
+          // Update room in array
+          for (var i = 0; i < rooms.length; i++) {
+            if (rooms[i].id === r.id) { rooms[i].is_readonly = inp.checked; break; }
+          }
+          nameDiv.innerHTML = '# ' + esc(r.name) + (inp.checked ? ' <span class="readonly-badge">読み取り専用</span>' : '');
+          // Update input area if current room
+          if (currentRoom && currentRoom.id === r.id) {
+            currentRoom.is_readonly = inp.checked;
+            updateInputAreaForRoom();
+          }
+          showToast(inp.checked ? '🔒 読み取り専用にしました' : '🔓 編集可能にしました');
+        });
+      });
+    })(room, input, nameEl);
+    
+    label.appendChild(input);
+    label.appendChild(slider);
+    div.appendChild(nameEl);
+    div.appendChild(label);
+    el.appendChild(div);
+  });
+}
+
+function updateInputAreaForRoom() {
+  var inputArea = document.getElementById('input-area');
+  if (!inputArea) return;
+  if (currentRoom && currentRoom.is_readonly && !isAdmin) {
+    inputArea.innerHTML = '<div style="text-align:center;padding:12px;color:#8b93b0;font-size:13px">🔒 このチャンネルは読み取り専用です</div>';
+  } else {
+    // Restore input area if it was replaced - reload the page section
+    if (!inputArea.querySelector('.msg-input')) {
+      selectRoom(currentRoom);
+    }
+  }
+}
+
+// ===== BAN CHECK on LOGIN =====
+function checkBanStatus() {
+  sb.from('banned_users').select('user_id').eq('user_id', currentUser.id).single().then(function(r) {
+    if (r.data) {
+      showToast('🚫 あなたはこのサーバーからBANされています');
+      setTimeout(function() { doLogout(); }, 2000);
+    }
+  });
+}
+
+// ===== GRADIENT TEXT =====
+function applyGradientToMessages() {
+  // gradient color handled in buildMsgHtml
+}
+
+
+document.addEventListener('click',function(e){
+  hideCtx();
+  if(e.target.classList.contains('modal-overlay'))closeModal(e.target.id);
+});
+document.addEventListener('keydown',function(e){
+  if(e.key==='Escape'){hideCtx();document.querySelectorAll('.modal-overlay.open').forEach(function(m){closeModal(m.id);});}
+});
 
 
 // ===== HELPERS =====
