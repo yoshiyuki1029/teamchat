@@ -505,23 +505,30 @@ function updateSidebarUser() {
   if(gradEl) gradEl.style.display=isAdmin?'block':'none';
 }
 function renderColorPresets() {
-  var wrap=document.getElementById('color-presets');
-  wrap.innerHTML=COLOR_PRESETS.map(function(c){
-    return '<div class="color-dot" style="background:'+c+'" data-color="'+c+'" onclick="selectColor(''+c+'')"></div>';
-  }).join('');
-  document.getElementById('custom-color').addEventListener('input',function(){
-    document.getElementById('preview-text').style.color=this.value;
-    document.getElementById('hex-color').value=this.value;
+  var wrap = document.getElementById('color-presets');
+  var html = '';
+  for (var i = 0; i < COLOR_PRESETS.length; i++) {
+    var c = COLOR_PRESETS[i];
+    html += '<div class="color-dot" style="background:' + c + '" data-color="' + c + '" onclick="selectColor(this.dataset.color)"></div>';
+  }
+  wrap.innerHTML = html;
+  document.getElementById('custom-color').addEventListener('input', function() {
+    document.getElementById('preview-text').style.color = this.value;
+    var hexEl = document.getElementById('hex-color');
+    if (hexEl) hexEl.value = this.value;
     updateColorSel(this.value);
   });
-  document.getElementById('hex-color').addEventListener('input',function(){
-    var val=this.value.trim();
-    if(/^#[0-9a-fA-F]{6}$/.test(val)){
-      document.getElementById('custom-color').value=val;
-      document.getElementById('preview-text').style.color=val;
-      updateColorSel(val);
-    }
-  });
+  var hexEl2 = document.getElementById('hex-color');
+  if (hexEl2) {
+    hexEl2.addEventListener('input', function() {
+      var val = this.value.trim();
+      if (/^#[0-9a-fA-F]{6}$/.test(val)) {
+        document.getElementById('custom-color').value = val;
+        document.getElementById('preview-text').style.color = val;
+        updateColorSel(val);
+      }
+    });
+  }
 }
 function updateGradPreview() {
   var c1=document.getElementById('grad-color1').value;
@@ -582,19 +589,26 @@ function setupPresence() {
   });
 }
 function renderOnlineList() {
-  var el=document.getElementById('online-list');
-  var online=allProfiles.filter(function(p){return onlineUsers[p.id]&&p.id!==currentUser.id;});
-  if(online.length===0){el.innerHTML='<div style="font-size:12px;color:#8b93b0;padding:4px 10px">なし</div>';return;}
-  el.innerHTML=online.map(function(p){
-    var color=p.display_color||'#5b8af0';
-    return '<div class="room-item" onclick="openDm(\''+p.id+'\',\''+esc(p.username||'')+'\',\''+color+'\')">'
-      +'<span class="online-dot"></span>'
-      +'<span style="font-size:13px">'+esc(p.username||p.id.slice(0,8))+'</span>'
-      +'</div>';
-  }).join('');
+  var el = document.getElementById('online-list');
+  if (!el) return;
+  var online = allProfiles.filter(function(p) { return onlineUsers[p.id] && p.id !== currentUser.id; });
+  if (online.length === 0) {
+    el.innerHTML = '<div style="font-size:12px;color:#8b93b0;padding:4px 10px">なし</div>';
+    return;
+  }
+  el.innerHTML = '';
+  for (var i = 0; i < online.length; i++) {
+    var p = online[i];
+    var color = p.display_color || '#5b8af0';
+    var div = document.createElement('div');
+    div.className = 'room-item';
+    div.innerHTML = '<span class="online-dot"></span><span style="font-size:13px">' + esc(p.username || p.id.slice(0,8)) + '</span>';
+    (function(pid, puname, pcolor) {
+      div.addEventListener('click', function() { openDm(pid, puname, pcolor); });
+    })(p.id, p.username || '', color);
+    el.appendChild(div);
+  }
 }
-
-// ===== ROOMS =====
 function loadRooms() {
   sb.from('rooms').select('*').order('created_at').then(function(r){
     rooms=r.data||[];
@@ -622,11 +636,22 @@ function checkUnreads() {
   });
 }
 function renderRooms() {
-  document.getElementById('rooms-list').innerHTML=rooms.map(function(r){
-    var active=currentRoom&&currentRoom.id===r.id&&viewMode==='room'?' active':'';
-    var badge=unreadRooms[r.id]>0?'<span class="badge">'+unreadRooms[r.id]+'</span>':'';
-    return '<div class="room-item'+active+'" onclick="selectRoomById(\''+r.id+'\')" oncontextmenu="showCtx(event,\''+r.id+'\')"># '+esc(r.name)+badge+'</div>';
-  }).join('');
+  var el = document.getElementById('rooms-list');
+  if (!el) return;
+  el.innerHTML = '';
+  for (var i = 0; i < rooms.length; i++) {
+    var r = rooms[i];
+    var active = (currentRoom && currentRoom.id === r.id && viewMode === 'room') ? ' active' : '';
+    var badge = unreadRooms[r.id] > 0 ? '<span class="badge">' + unreadRooms[r.id] + '</span>' : '';
+    var div = document.createElement('div');
+    div.className = 'room-item' + active;
+    div.innerHTML = '# ' + esc(r.name) + badge;
+    (function(room) {
+      div.addEventListener('click', function() { selectRoom(room); });
+      div.addEventListener('contextmenu', function(e) { showCtx(e, room.id); });
+    })(r);
+    el.appendChild(div);
+  }
 }
 function selectRoomById(id){for(var i=0;i<rooms.length;i++){if(rooms[i].id===id){selectRoom(rooms[i]);return;}}}
 function selectRoom(room) {
@@ -718,18 +743,29 @@ function deleteRoom() {
 
 // ===== DM =====
 function renderDmList() {
-  var el=document.getElementById('dm-list');
-  var dmProfiles=allProfiles.filter(function(p){return p.id!==currentUser.id;});
-  if(dmProfiles.length===0){el.innerHTML='<div style="font-size:12px;color:#8b93b0;padding:4px 10px">メンバーなし</div>';return;}
-  el.innerHTML=dmProfiles.map(function(p){
-    var color=p.display_color||'#5b8af0';
-    var active=currentDmUser&&currentDmUser.id===p.id&&viewMode==='dm'?' active':'';
-    var isOnline=onlineUsers[p.id]?true:false;
-    var dot=isOnline?'<span class="online-dot"></span>':'<span class="offline-dot"></span>';
-    var badge=unreadDms[p.id]>0?'<span class="badge">'+unreadDms[p.id]+'</span>':'';
-    return '<div class="room-item'+active+'" onclick="openDm(\''+p.id+'\',\''+esc(p.username||'')+'\',\''+color+'\')">'
-      +dot+'<span style="font-size:13px">'+esc(p.username||p.id.slice(0,8))+'</span>'+badge+'</div>';
-  }).join('');
+  var el = document.getElementById('dm-list');
+  if (!el) return;
+  var dmProfiles = allProfiles.filter(function(p) { return p.id !== currentUser.id; });
+  if (dmProfiles.length === 0) {
+    el.innerHTML = '<div style="font-size:12px;color:#8b93b0;padding:4px 10px">メンバーなし</div>';
+    return;
+  }
+  el.innerHTML = '';
+  for (var i = 0; i < dmProfiles.length; i++) {
+    var p = dmProfiles[i];
+    var color = p.display_color || '#5b8af0';
+    var active = (currentDmUser && currentDmUser.id === p.id && viewMode === 'dm') ? ' active' : '';
+    var isOnline = onlineUsers[p.id] ? true : false;
+    var dot = isOnline ? '<span class="online-dot"></span>' : '<span class="offline-dot"></span>';
+    var badge = unreadDms[p.id] > 0 ? '<span class="badge">' + unreadDms[p.id] + '</span>' : '';
+    var div = document.createElement('div');
+    div.className = 'room-item' + active;
+    div.innerHTML = dot + '<span style="font-size:13px">' + esc(p.username || p.id.slice(0,8)) + '</span>' + badge;
+    (function(pid, puname, pcolor) {
+      div.addEventListener('click', function() { openDm(pid, puname, pcolor); });
+    })(p.id, p.username || '', color);
+    el.appendChild(div);
+  }
 }
 function openDm(userId, username, color) {
   var profile=allProfiles.find(function(p){return p.id===userId;});
@@ -766,135 +802,22 @@ function setupDmSubscription() {
     }).subscribe();
 }
 function loadDmUserModal() {
-  var el=document.getElementById('dm-user-list');
-  var others=allProfiles.filter(function(p){return p.id!==currentUser.id;});
-  el.innerHTML=others.map(function(p){
-    var color=p.display_color||'#5b8af0';
-    return '<div class="user-list-item" onclick="openDm(\''+p.id+'\',\''+esc(p.username||'')+'\',\''+color+'\')">'
-      +'<div class="avatar" style="background:'+color+';width:32px;height:32px;font-size:13px">'+esc((p.username||'?')[0].toUpperCase())+'</div>'
-      +'<div><div class="uname">'+esc(p.username||'')+'</div></div>'
-      +'</div>';
-  }).join('');
-}
-
-// ===== MESSAGES =====
-function loadMessages(mode) {
-  var wrap=document.getElementById('messages-wrap');
-  wrap.innerHTML='<div style="text-align:center;padding:40px;color:#8b93b0;font-size:13px">読み込み中...</div>';
-  messagesCache=[];
-  if(mode==='room'){
-    sb.from('messages').select('*, profiles(username,display_color)').eq('room_id',currentRoom.id).order('created_at',{ascending:true}).limit(100).then(function(r){
-      if(r.error){wrap.innerHTML='<div style="text-align:center;padding:40px;color:#e05a5a">エラー: '+esc(r.error.message)+'</div>';return;}
-      messagesCache=r.data||[];
-      renderMessages('room');
-      scrollBottom();
-    });
-  } else {
-    var uid=currentDmUser.id;
-    sb.from('direct_messages')
-      .select('*, profiles!direct_messages_sender_id_fkey(username,display_color)')
-      .or('and(sender_id.eq.'+currentUser.id+',receiver_id.eq.'+uid+'),and(sender_id.eq.'+uid+',receiver_id.eq.'+currentUser.id+')')
-      .order('created_at',{ascending:true}).limit(100).then(function(r){
-        if(r.error){wrap.innerHTML='<div style="text-align:center;padding:40px;color:#e05a5a">エラー: '+esc(r.error.message)+'</div>';return;}
-        messagesCache=r.data||[];
-        renderMessages('dm');
-        scrollBottom();
-      });
+  var el = document.getElementById('dm-user-list');
+  if (!el) return;
+  var others = allProfiles.filter(function(p) { return p.id !== currentUser.id; });
+  el.innerHTML = '';
+  for (var i = 0; i < others.length; i++) {
+    var p = others[i];
+    var color = p.display_color || '#5b8af0';
+    var div = document.createElement('div');
+    div.className = 'user-list-item';
+    div.innerHTML = '<div class="avatar" style="background:' + color + ';width:32px;height:32px;font-size:13px">' + esc((p.username||'?')[0].toUpperCase()) + '</div><div><div class="uname">' + esc(p.username||'') + '</div></div>';
+    (function(pid, puname, pcolor) {
+      div.addEventListener('click', function() { openDm(pid, puname, pcolor); });
+    })(p.id, p.username || '', color);
+    el.appendChild(div);
   }
 }
-
-function renderMessages(mode) {
-  var wrap=document.getElementById('messages-wrap');
-  if(messagesCache.length===0){wrap.innerHTML='<div class="empty-state"><div class="empty-icon">🌱</div><div>最初のメッセージを送りましょう！</div></div>';return;}
-  var html=''; var lastUser=null; var lastDay=null;
-  for(var i=0;i<messagesCache.length;i++){
-    var msg=messagesCache[i];
-    var day=new Date(msg.created_at).toLocaleDateString('ja-JP',{year:'numeric',month:'long',day:'numeric'});
-    if(day!==lastDay){html+='<div class="day-sep"><span>'+esc(day)+'</span></div>';lastDay=day;lastUser=null;}
-    html+=mode==='dm'?buildDmMsgHtml(msg,lastUser):buildMsgHtml(msg,lastUser);
-    lastUser=msg.user_id||msg.sender_id;
-  }
-  wrap.innerHTML=html;
-}
-
-function buildMsgHtml(msg, lastUserId) {
-  var profile=msg.profiles||{};
-  var name=profile.username||'不明';
-  var color=msg.color||profile.display_color||'#5b8af0';
-  var time=new Date(msg.created_at).toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'});
-  var isFirst=msg.user_id!==lastUserId;
-  var avatar=isFirst
-    ?'<div class="msg-avatar" style="background:'+color+'22;color:'+color+'">'+esc(name[0].toUpperCase())+'</div>'
-    :'<div class="msg-spacer"></div>';
-  var header=isFirst?'<div class="msg-header"><span class="msg-author" style="color:'+color+'" onclick="mentionUser(\''+esc(name)+'\')">'+esc(name)+'</span><span class="msg-time">'+time+'</span></div>':'';
-  var content=buildContent(msg,color);
-  var canDelete=isAdmin||(currentUser&&msg.user_id===currentUser.id);
-  var actions=canDelete?'<div class="msg-actions"><button class="msg-action-btn danger" onclick="deleteMsg(\''+msg.id+'\',\'room\')" title="削除">🗑</button></div>':'';
-  return '<div class="msg'+(isFirst?' first-in-group':'')+'" id="msg-'+msg.id+'">'+avatar+'<div class="msg-body">'+header+content+'</div>'+actions+'</div>';
-}
-
-function buildDmMsgHtml(msg, lastSenderId) {
-  var profile=msg.profiles||{};
-  var isMine=msg.sender_id===currentUser.id;
-  var name=isMine?(currentProfile?currentProfile.username:'あなた'):(currentDmUser?currentDmUser.username:profile.username||'相手');
-  var color=isMine?(currentProfile?currentProfile.display_color:'#5b8af0'):(currentDmUser?currentDmUser.display_color:profile.display_color||'#5b8af0');
-  var time=new Date(msg.created_at).toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'});
-  var isFirst=msg.sender_id!==lastSenderId;
-  var avatar=isFirst
-    ?'<div class="msg-avatar" style="background:'+color+'22;color:'+color+'">'+esc(name[0].toUpperCase())+'</div>'
-    :'<div class="msg-spacer"></div>';
-  var header=isFirst?'<div class="msg-header"><span class="msg-author" style="color:'+color+'">'+esc(name)+'</span><span class="msg-time">'+time+'</span></div>':'';
-  var content='<div class="msg-text" style="color:'+color+'">'+esc(msg.content||'')+'</div>';
-  if(msg.image_url) content='<img class="msg-img" src="'+esc(msg.image_url)+'" onclick="openLightbox(\''+esc(msg.image_url)+'\')" loading="lazy">';
-  var canDelete=isMine||isAdmin;
-  var actions=canDelete?'<div class="msg-actions"><button class="msg-action-btn danger" onclick="deleteMsg(\''+msg.id+'\',\'dm\')" title="削除">🗑</button></div>':'';
-  return '<div class="msg'+(isFirst?' first-in-group':'')+'" id="msg-'+msg.id+'">'+avatar+'<div class="msg-body">'+header+content+'</div>'+actions+'</div>';
-}
-
-function buildContent(msg,color) {
-  if(msg.message_type==='image'&&msg.image_url){
-    var c='<img class="msg-img" src="'+esc(msg.image_url)+'" onclick="openLightbox(\''+esc(msg.image_url)+'\')" loading="lazy">';
-    if(msg.content) c+='<div class="msg-text" style="color:'+color+'">'+formatText(msg.content,color)+'</div>';
-    return c;
-  }
-  if(msg.message_type==='template'){
-    return '<div class="template-bubble" style="background:'+color+'22;color:'+color+';border:1px solid '+color+'44">'+esc(msg.content)+'</div>';
-  }
-  return '<div class="msg-text" style="color:'+color+'">'+formatText(msg.content||'',color)+'</div>';
-}
-
-function formatText(text,color) {
-  var h=esc(text);
-  h=h.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>');
-  h=h.replace(/@(\S+)/g,'<span class="mention">@$1</span>');
-  h=h.replace(/(https?:\/\/[^\s<]+)/g,'<a href="$1" target="_blank" rel="noopener" style="color:#5b8af0;text-decoration:underline">$1</a>');
-  return h;
-}
-
-function subscribeRoomMessages() {
-  realtimeSub=sb.channel('room-msg-'+currentRoom.id)
-    .on('postgres_changes',{event:'INSERT',schema:'public',table:'messages',filter:'room_id=eq.'+currentRoom.id},function(payload){
-      sb.from('messages').select('*, profiles(username,display_color)').eq('id',payload.new.id).single().then(function(r){
-        if(!r.data)return;
-        var prevUser=messagesCache.length>0?messagesCache[messagesCache.length-1].user_id:null;
-        messagesCache.push(r.data);
-        var wrap=document.getElementById('messages-wrap');
-        var empty=wrap.querySelector('.empty-state');
-        if(empty)wrap.innerHTML='';
-        appendMsgEl(buildMsgHtml(r.data,prevUser));
-        var atBottom=wrap.scrollHeight-wrap.scrollTop-wrap.clientHeight<100;
-        if(atBottom)scrollBottom();
-        markRoomRead(currentRoom.id);
-      });
-    })
-    .on('postgres_changes',{event:'DELETE',schema:'public',table:'messages'},function(payload){
-      var el=document.getElementById('msg-'+payload.old.id);
-      if(el)el.remove();
-      messagesCache=messagesCache.filter(function(m){return m.id!==payload.old.id;});
-    })
-    .subscribe();
-}
-
 function subscribeDmMessages() {
   var uid=currentDmUser.id;
   realtimeSub=sb.channel('dm-conv-'+[currentUser.id,uid].sort().join('-'))
@@ -1009,15 +932,22 @@ function onInputChange() {
   }
 }
 function renderMentionList() {
-  var el=document.getElementById('mention-list');
-  if(mentionMatches.length===0){el.style.display='none';return;}
-  el.style.display='block';
-  el.innerHTML=mentionMatches.map(function(p,i){
-    var color=p.display_color||'#5b8af0';
-    return '<div class="mention-item'+(i===mentionIndex?' selected':'')+'" onclick="insertMention(allProfiles.find(function(x){return x.id===\''+p.id+'\'}))">'
-      +'<div class="avatar" style="background:'+color+';width:24px;height:24px;font-size:11px">'+esc((p.username||'?')[0].toUpperCase())+'</div>'
-      +esc(p.username||'')+'</div>';
-  }).join('');
+  var el = document.getElementById('mention-list');
+  if (!el) return;
+  if (mentionMatches.length === 0) { el.style.display = 'none'; return; }
+  el.style.display = 'block';
+  el.innerHTML = '';
+  for (var i = 0; i < mentionMatches.length; i++) {
+    var p = mentionMatches[i];
+    var color = p.display_color || '#5b8af0';
+    var div = document.createElement('div');
+    div.className = 'mention-item' + (i === mentionIndex ? ' selected' : '');
+    div.innerHTML = '<div class="avatar" style="background:' + color + ';width:24px;height:24px;font-size:11px">' + esc((p.username||'?')[0].toUpperCase()) + '</div>' + esc(p.username || '');
+    (function(profile) {
+      div.addEventListener('click', function() { insertMention(profile); });
+    })(p);
+    el.appendChild(div);
+  }
 }
 function insertMention(profile) {
   if(!profile)return;
