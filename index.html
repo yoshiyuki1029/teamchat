@@ -409,7 +409,10 @@ body { font-family: 'Segoe UI','Hiragino Sans','Yu Gothic UI',sans-serif; backgr
       <label>説明</label>
       <input type="text" id="server-desc" placeholder="サーバーの説明">
       <label>ルール</label>
-      <textarea id="server-rules" placeholder="サーバーのルールを入力..." style="width:100%;padding:10px 12px;margin-bottom:14px;background:#1e2435;border:1px solid #2a3050;border-radius:8px;color:#e8eaf0;font-size:14px;outline:none;resize:vertical;min-height:80px;font-family:inherit"></textare
+      <textarea id="server-rules" placeholder="サーバーのルールを入力..." style="width:100%;padding:10px 12px;margin-bottom:14px;background:#1e2435;border:1px solid #2a3050;border-radius:8px;color:#e8eaf0;font-size:14px;outline:none;resize:vertical;min-height:80px;font-family:inherit"></textarea>
+
+<!-- ========== SCRIPT ========== -->
+<script>
 var SUPABASE_URL = 'https://nsckdlitgupublaqaypx.supabase.co';
 var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5zY2tkbGl0Z3VwdWJsYXFheXB4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODczNzc3ODgsImV4cCI6MjEwMjk1Mzc4OH0._IhnshSj5O0_aMmWSN6u5Z3iUN6SME7tBAH0p73x2xE';
 var sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -1590,12 +1593,8 @@ function showRules() {
   var titleEl = document.getElementById('rules-modal-title');
   var contentEl = document.getElementById('rules-modal-content');
   var text = '';
-  if (serverSettings.description) text += '📖 説明
-' + serverSettings.description + '
-
-';
-  if (serverSettings.rules) text += '📋 ルール
-' + serverSettings.rules;
+  if (serverSettings.description) text += '📖 説明\n' + serverSettings.description + '\n\n';
+  if (serverSettings.rules) text += '📋 ルール\n' + serverSettings.rules;
   if (!text) text = 'サーバーの説明・ルールは設定されていません。';
   titleEl.textContent = (serverSettings.icon || '💬') + ' ' + (serverSettings.name || 'TeamChat');
   contentEl.textContent = text;
