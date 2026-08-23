@@ -495,11 +495,14 @@ function updateSidebarUser() {
   if(color&&color[0]==='#'&&color.length<=7) {
     document.getElementById('custom-color').value=color;
   }
-  document.getElementById('hex-color').value=color||'#5b8af0';
-  document.getElementById('preview-text').style.color=color;
+  var hexEl=document.getElementById('hex-color');
+  if(hexEl) hexEl.value=color||'#5b8af0';
+  var prevEl=document.getElementById('preview-text');
+  if(prevEl) prevEl.style.color=color;
   updateColorSel(color);
   // 管理者UIを表示
-  if(isAdmin) document.getElementById('admin-gradient-section').style.display='block';
+  var gradEl=document.getElementById('admin-gradient-section');
+  if(gradEl) gradEl.style.display=isAdmin?'block':'none';
 }
 function renderColorPresets() {
   var wrap=document.getElementById('color-presets');
