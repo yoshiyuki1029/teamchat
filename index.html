@@ -410,6 +410,32 @@ body { font-family: 'Segoe UI','Hiragino Sans','Yu Gothic UI',sans-serif; backgr
       <input type="text" id="server-desc" placeholder="サーバーの説明">
       <label>ルール</label>
       <textarea id="server-rules" placeholder="サーバーのルールを入力..." style="width:100%;padding:10px 12px;margin-bottom:14px;background:#1e2435;border:1px solid #2a3050;border-radius:8px;color:#e8eaf0;font-size:14px;outline:none;resize:vertical;min-height:80px;font-family:inherit"></textarea>
+      <label>メッセージ保持期間</label>
+      <select id="server-retention" style="width:100%;padding:10px 12px;margin-bottom:14px;background:#1e2435;border:1px solid #2a3050;border-radius:8px;color:#e8eaf0;font-size:14px;outline:none">
+        <option value="0">無制限</option>
+        <option value="7">7日間</option>
+        <option value="30">30日間</option>
+        <option value="90">90日間</option>
+        <option value="365">1年間</option>
+      </select>
+      <div class="modal-footer">
+        <button class="btn-cancel" onclick="closeModal('server-modal')">キャンセル</button>
+        <button class="btn-ok" onclick="saveServerSettings()">保存</button>
+      </div>
+    </div>
+    <!-- Members -->
+    <div id="server-tab-members" style="display:none">
+      <div id="members-list" style="max-height:360px;overflow-y:auto"></div>
+    </div>
+    <!-- Channel Permissions -->
+    <div id="server-tab-channels" style="display:none">
+      <div id="channel-perms-list"></div>
+      <div class="modal-footer">
+        <button class="btn-cancel" onclick="closeModal('server-modal')">閉じる</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- ========== SCRIPT ========== -->
 <script>
