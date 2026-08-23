@@ -506,18 +506,25 @@ function updateSidebarUser() {
 }
 function renderColorPresets() {
   var wrap = document.getElementById('color-presets');
-  var html = '';
+  wrap.innerHTML = '';
   for (var i = 0; i < COLOR_PRESETS.length; i++) {
     var c = COLOR_PRESETS[i];
-    html += '<div class="color-dot" style="background:' + c + '" data-color="' + c + '" onclick="selectColor(this.dataset.color)"></div>';
+    var dot = document.createElement('div');
+    dot.className = 'color-dot';
+    dot.style.background = c;
+    dot.dataset.color = c;
+    (function(col){ dot.addEventListener('click', function(){ selectColor(col); }); })(c);
+    wrap.appendChild(dot);
   }
-  wrap.innerHTML = html;
-  document.getElementById('custom-color').addEventListener('input', function() {
-    document.getElementById('preview-text').style.color = this.value;
-    var hexEl = document.getElementById('hex-color');
-    if (hexEl) hexEl.value = this.value;
-    updateColorSel(this.value);
-  });
+  var customEl = document.getElementById('custom-color');
+  if (customEl) {
+    customEl.addEventListener('input', function() {
+      document.getElementById('preview-text').style.color = this.value;
+      var hexEl = document.getElementById('hex-color');
+      if (hexEl) hexEl.value = this.value;
+      updateColorSel(this.value);
+    });
+  }
   var hexEl2 = document.getElementById('hex-color');
   if (hexEl2) {
     hexEl2.addEventListener('input', function() {
@@ -530,6 +537,7 @@ function renderColorPresets() {
     });
   }
 }
+
 function updateGradPreview() {
   var c1=document.getElementById('grad-color1').value;
   var c2=document.getElementById('grad-color2').value;
@@ -878,13 +886,13 @@ function renderMessages(mode) {
       lastDay = day;
       lastUser = null;
     }
-    var el = document.createElement('div');
     var userId = msg.user_id || msg.sender_id;
-    el.innerHTML = mode === 'dm' ? buildDmMsgHtml(msg, lastUser) : buildMsgHtml(msg, lastUser);
-    wrap.appendChild(el.firstChild || el);
+    var el = mode === 'dm' ? buildDmMsgHtml(msg, lastUser) : buildMsgHtml(msg, lastUser);
+    wrap.appendChild(el);
     lastUser = userId;
   }
 }
+
 
 function buildMsgHtml(msg, lastUserId) {
   var profile = msg.profiles || {};
@@ -892,17 +900,64 @@ function buildMsgHtml(msg, lastUserId) {
   var color = msg.color || profile.display_color || '#5b8af0';
   var time = new Date(msg.created_at).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
   var isFirst = msg.user_id !== lastUserId;
-  var avatar = isFirst
-    ? '<div class="msg-avatar" style="background:' + color + '22;color:' + color + '">' + esc(name[0].toUpperCase()) + '</div>'
-    : '<div class="msg-spacer"></div>';
-  var header = isFirst
-    ? '<div class="msg-header"><span class="msg-author" style="color:' + color + '" onclick="mentionUser('' + esc(name) + '')">' + esc(name) + '</span><span class="msg-time">' + time + '</span></div>'
-    : '';
-  var content = buildContent(msg, color);
+
+  var wrap = document.createElement('div');
+  wrap.className = 'msg' + (isFirst ? ' first-in-group' : '');
+  wrap.id = 'msg-' + msg.id;
+
+  // Avatar
+  var avatarEl = document.createElement('div');
+  if (isFirst) {
+    avatarEl.className = 'msg-avatar';
+    avatarEl.style.background = color + '22';
+    avatarEl.style.color = color;
+    avatarEl.textContent = name[0].toUpperCase();
+  } else {
+    avatarEl.className = 'msg-spacer';
+  }
+  wrap.appendChild(avatarEl);
+
+  // Body
+  var body = document.createElement('div');
+  body.className = 'msg-body';
+
+  if (isFirst) {
+    var headerEl = document.createElement('div');
+    headerEl.className = 'msg-header';
+    var authorEl = document.createElement('span');
+    authorEl.className = 'msg-author';
+    authorEl.style.color = color;
+    authorEl.textContent = name;
+    authorEl.addEventListener('click', (function(n){ return function(){ mentionUser(n); }; })(name));
+    var timeEl = document.createElement('span');
+    timeEl.className = 'msg-time';
+    timeEl.textContent = time;
+    headerEl.appendChild(authorEl);
+    headerEl.appendChild(timeEl);
+    body.appendChild(headerEl);
+  }
+
+  // Content
+  body.appendChild(buildContent(msg, color));
+  wrap.appendChild(body);
+
+  // Actions
   var canDelete = isAdmin || (currentUser && msg.user_id === currentUser.id);
-  var actions = canDelete ? '<div class="msg-actions"><button class="msg-action-btn danger" onclick="deleteMsg('' + msg.id + '','room')" title="削除">🗑</button></div>' : '';
-  return '<div class="msg' + (isFirst ? ' first-in-group' : '') + '" id="msg-' + msg.id + '">' + avatar + '<div class="msg-body">' + header + content + '</div>' + actions + '</div>';
+  if (canDelete) {
+    var actions = document.createElement('div');
+    actions.className = 'msg-actions';
+    var delBtn = document.createElement('button');
+    delBtn.className = 'msg-action-btn danger';
+    delBtn.title = '削除';
+    delBtn.textContent = '🗑';
+    delBtn.addEventListener('click', (function(id){ return function(){ deleteMsg(id, 'room'); }; })(msg.id));
+    actions.appendChild(delBtn);
+    wrap.appendChild(actions);
+  }
+
+  return wrap;
 }
+
 
 function buildDmMsgHtml(msg, lastSenderId) {
   var isMine = msg.sender_id === currentUser.id;
@@ -911,31 +966,109 @@ function buildDmMsgHtml(msg, lastSenderId) {
   var color = isMine ? (currentProfile ? currentProfile.display_color : '#5b8af0') : (currentDmUser ? currentDmUser.display_color : profile.display_color || '#5b8af0');
   var time = new Date(msg.created_at).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
   var isFirst = msg.sender_id !== lastSenderId;
-  var avatar = isFirst
-    ? '<div class="msg-avatar" style="background:' + color + '22;color:' + color + '">' + esc(name[0].toUpperCase()) + '</div>'
-    : '<div class="msg-spacer"></div>';
-  var header = isFirst
-    ? '<div class="msg-header"><span class="msg-author" style="color:' + color + '">' + esc(name) + '</span><span class="msg-time">' + time + '</span></div>'
-    : '';
-  var content = msg.image_url
-    ? '<img class="msg-img" src="' + esc(msg.image_url) + '" onclick="openLightbox('' + esc(msg.image_url) + '')" loading="lazy">'
-    : '<div class="msg-text" style="color:' + color + '">' + esc(msg.content || '') + '</div>';
+
+  var wrap = document.createElement('div');
+  wrap.className = 'msg' + (isFirst ? ' first-in-group' : '');
+  wrap.id = 'msg-' + msg.id;
+
+  var avatarEl = document.createElement('div');
+  if (isFirst) {
+    avatarEl.className = 'msg-avatar';
+    avatarEl.style.background = color + '22';
+    avatarEl.style.color = color;
+    avatarEl.textContent = name[0].toUpperCase();
+  } else {
+    avatarEl.className = 'msg-spacer';
+  }
+  wrap.appendChild(avatarEl);
+
+  var body = document.createElement('div');
+  body.className = 'msg-body';
+
+  if (isFirst) {
+    var headerEl = document.createElement('div');
+    headerEl.className = 'msg-header';
+    var authorEl = document.createElement('span');
+    authorEl.className = 'msg-author';
+    authorEl.style.color = color;
+    authorEl.textContent = name;
+    var timeEl = document.createElement('span');
+    timeEl.className = 'msg-time';
+    timeEl.textContent = time;
+    headerEl.appendChild(authorEl);
+    headerEl.appendChild(timeEl);
+    body.appendChild(headerEl);
+  }
+
+  var contentEl = document.createElement('div');
+  if (msg.image_url) {
+    var img = document.createElement('img');
+    img.className = 'msg-img';
+    img.src = msg.image_url;
+    img.loading = 'lazy';
+    img.addEventListener('click', (function(url){ return function(){ openLightbox(url); }; })(msg.image_url));
+    contentEl.appendChild(img);
+  } else {
+    var textEl = document.createElement('div');
+    textEl.className = 'msg-text';
+    textEl.style.color = color;
+    textEl.textContent = msg.content || '';
+    contentEl.appendChild(textEl);
+  }
+  body.appendChild(contentEl);
+  wrap.appendChild(body);
+
   var canDelete = isMine || isAdmin;
-  var actions = canDelete ? '<div class="msg-actions"><button class="msg-action-btn danger" onclick="deleteMsg('' + msg.id + '','dm')" title="削除">🗑</button></div>' : '';
-  return '<div class="msg' + (isFirst ? ' first-in-group' : '') + '" id="msg-' + msg.id + '">' + avatar + '<div class="msg-body">' + header + content + '</div>' + actions + '</div>';
+  if (canDelete) {
+    var actions = document.createElement('div');
+    actions.className = 'msg-actions';
+    var delBtn = document.createElement('button');
+    delBtn.className = 'msg-action-btn danger';
+    delBtn.title = '削除';
+    delBtn.textContent = '🗑';
+    delBtn.addEventListener('click', (function(id){ return function(){ deleteMsg(id, 'dm'); }; })(msg.id));
+    actions.appendChild(delBtn);
+    wrap.appendChild(actions);
+  }
+
+  return wrap;
 }
 
+
 function buildContent(msg, color) {
+  var wrapper = document.createElement('div');
   if (msg.message_type === 'image' && msg.image_url) {
-    var c = '<img class="msg-img" src="' + esc(msg.image_url) + '" onclick="openLightbox('' + esc(msg.image_url) + '')" loading="lazy">';
-    if (msg.content) c += '<div class="msg-text" style="color:' + color + '">' + formatText(msg.content, color) + '</div>';
-    return c;
+    var img = document.createElement('img');
+    img.className = 'msg-img';
+    img.src = msg.image_url;
+    img.loading = 'lazy';
+    img.addEventListener('click', (function(url){ return function(){ openLightbox(url); }; })(msg.image_url));
+    wrapper.appendChild(img);
+    if (msg.content) {
+      var t = document.createElement('div');
+      t.className = 'msg-text';
+      t.style.color = color;
+      t.innerHTML = formatText(msg.content, color);
+      wrapper.appendChild(t);
+    }
+    return wrapper;
   }
   if (msg.message_type === 'template') {
-    return '<div class="template-bubble" style="background:' + color + '22;color:' + color + ';border:1px solid ' + color + '44">' + esc(msg.content) + '</div>';
+    var b = document.createElement('div');
+    b.className = 'template-bubble';
+    b.style.cssText = 'background:' + color + '22;color:' + color + ';border:1px solid ' + color + '44';
+    b.textContent = msg.content;
+    wrapper.appendChild(b);
+    return wrapper;
   }
-  return '<div class="msg-text" style="color:' + color + '">' + formatText(msg.content || '', color) + '</div>';
+  var d = document.createElement('div');
+  d.className = 'msg-text';
+  d.style.color = color;
+  d.innerHTML = formatText(msg.content || '', color);
+  wrapper.appendChild(d);
+  return wrapper;
 }
+
 
 function formatText(text, color) {
   var h = esc(text);
@@ -955,7 +1088,7 @@ function subscribeRoomMessages() {
         var wrap = document.getElementById('messages-wrap');
         var empty = wrap.querySelector('.empty-state');
         if (empty) wrap.innerHTML = '';
-        appendMsgEl(buildMsgHtml(r.data, prevUser));
+        wrap.appendChild(buildMsgHtml(r.data, prevUser));
         var atBottom = wrap.scrollHeight - wrap.scrollTop - wrap.clientHeight < 100;
         if (atBottom) scrollBottom();
         markRoomRead(currentRoom.id);
@@ -969,38 +1102,47 @@ function subscribeRoomMessages() {
     .subscribe();
 }
 
+
 function subscribeDmMessages() {
-  var uid=currentDmUser.id;
-  realtimeSub=sb.channel('dm-conv-'+[currentUser.id,uid].sort().join('-'))
-    .on('postgres_changes',{event:'INSERT',schema:'public',table:'direct_messages'},function(payload){
-      var n=payload.new;
-      var isRelevant=(n.sender_id===currentUser.id&&n.receiver_id===uid)||(n.sender_id===uid&&n.receiver_id===currentUser.id);
-      if(!isRelevant)return;
-      sb.from('direct_messages').select('*, profiles!direct_messages_sender_id_fkey(username,display_color)').eq('id',n.id).single().then(function(r){
-        if(!r.data)return;
-        var prevSender=messagesCache.length>0?messagesCache[messagesCache.length-1].sender_id:null;
+  var uid = currentDmUser.id;
+  realtimeSub = sb.channel('dm-conv-' + [currentUser.id, uid].sort().join('-'))
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'direct_messages' }, function(payload) {
+      var n = payload.new;
+      var isRelevant = (n.sender_id === currentUser.id && n.receiver_id === uid) || (n.sender_id === uid && n.receiver_id === currentUser.id);
+      if (!isRelevant) return;
+      sb.from('direct_messages').select('*, profiles!direct_messages_sender_id_fkey(username, display_color)').eq('id', n.id).single().then(function(r) {
+        if (!r.data) return;
+        var prevSender = messagesCache.length > 0 ? messagesCache[messagesCache.length - 1].sender_id : null;
         messagesCache.push(r.data);
-        var wrap=document.getElementById('messages-wrap');
-        if(wrap.querySelector('.empty-state'))wrap.innerHTML='';
-        appendMsgEl(buildDmMsgHtml(r.data,prevSender));
-        var atBottom=wrap.scrollHeight-wrap.scrollTop-wrap.clientHeight<100;
-        if(atBottom)scrollBottom();
+        var wrap = document.getElementById('messages-wrap');
+        if (wrap.querySelector('.empty-state')) wrap.innerHTML = '';
+        wrap.appendChild(buildDmMsgHtml(r.data, prevSender));
+        var atBottom = wrap.scrollHeight - wrap.scrollTop - wrap.clientHeight < 100;
+        if (atBottom) scrollBottom();
       });
     })
-    .on('postgres_changes',{event:'DELETE',schema:'public',table:'direct_messages'},function(payload){
-      var el=document.getElementById('msg-'+payload.old.id);
-      if(el)el.remove();
-      messagesCache=messagesCache.filter(function(m){return m.id!==payload.old.id;});
+    .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'direct_messages' }, function(payload) {
+      var el = document.getElementById('msg-' + payload.old.id);
+      if (el) el.remove();
+      messagesCache = messagesCache.filter(function(m) { return m.id !== payload.old.id; });
     })
     .subscribe();
 }
 
-function appendMsgEl(html) {
-  var wrap=document.getElementById('messages-wrap');
-  var el=document.createElement('div');
-  el.innerHTML=html;
-  wrap.appendChild(el.firstChild);
+
+function appendMsgEl(el) {
+  var wrap = document.getElementById('messages-wrap');
+  var empty = wrap.querySelector('.empty-state');
+  if (empty) wrap.innerHTML = '';
+  if (el instanceof Element) {
+    wrap.appendChild(el);
+  } else {
+    var div = document.createElement('div');
+    div.innerHTML = el;
+    wrap.appendChild(div.firstChild || div);
+  }
 }
+
 
 function deleteMsg(id, mode) {
   if(!confirm('このメッセージを削除しますか？'))return;
@@ -1156,24 +1298,36 @@ function toggleSearch() {
   else{document.getElementById('search-input').value='';document.getElementById('search-results').innerHTML='';}
 }
 function doSearch() {
-  var q=document.getElementById('search-input').value.trim();
-  var res=document.getElementById('search-results');
-  if(!q||q.length<2){res.innerHTML='';return;}
-  if(!currentRoom&&!currentDmUser){res.innerHTML='<div style="color:#8b93b0;font-size:12px;padding:4px">チャンネルを選択してから検索してください</div>';return;}
-  var filtered=messagesCache.filter(function(m){
-    return (m.content||'').toLowerCase().indexOf(q.toLowerCase())!==-1;
+  var q = document.getElementById('search-input').value.trim();
+  var res = document.getElementById('search-results');
+  if (!q || q.length < 2) { res.innerHTML = ''; return; }
+  if (!currentRoom && !currentDmUser) {
+    res.innerHTML = '<div style="color:#8b93b0;font-size:12px;padding:4px">チャンネルを選択してから検索してください</div>';
+    return;
+  }
+  var filtered = messagesCache.filter(function(m) {
+    return (m.content || '').toLowerCase().indexOf(q.toLowerCase()) !== -1;
   });
-  if(filtered.length===0){res.innerHTML='<div style="color:#8b93b0;font-size:12px;padding:4px">見つかりませんでした</div>';return;}
-  res.innerHTML=filtered.slice(-20).reverse().map(function(m){
-    var profile=m.profiles||{};
-    var name=profile.username||'不明';
-    var time=new Date(m.created_at).toLocaleString('ja-JP',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'});
-    return '<div class="search-result-item" onclick="scrollToMsg(\''+m.id+'\')">'
-      +'<div class="search-result-name">'+esc(name)+' · '+time+'</div>'
-      +'<div style="font-size:13px">'+esc((m.content||'').slice(0,60))+'</div>'
-      +'</div>';
-  }).join('');
+  if (filtered.length === 0) {
+    res.innerHTML = '<div style="color:#8b93b0;font-size:12px;padding:4px">見つかりませんでした</div>';
+    return;
+  }
+  res.innerHTML = '';
+  var shown = filtered.slice(-20).reverse();
+  for (var i = 0; i < shown.length; i++) {
+    var m = shown[i];
+    var profile = m.profiles || {};
+    var name = profile.username || '不明';
+    var time = new Date(m.created_at).toLocaleString('ja-JP', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    var div = document.createElement('div');
+    div.className = 'search-result-item';
+    div.innerHTML = '<div class="search-result-name">' + esc(name) + ' · ' + time + '</div><div style="font-size:13px">' + esc((m.content || '').slice(0, 60)) + '</div>';
+    (function(id){ div.addEventListener('click', function(){ scrollToMsg(id); }); })(m.id);
+    res.appendChild(div);
+  }
 }
+
+
 function scrollToMsg(id) {
   var el=document.getElementById('msg-'+id);
   if(el){el.scrollIntoView({behavior:'smooth',block:'center'});el.style.background='rgba(91,138,240,0.15)';setTimeout(function(){el.style.background='';},2000);}
@@ -1192,12 +1346,19 @@ function removeImg(){pendingImg=null;document.getElementById('img-preview-wrap')
 
 // ===== TEMPLATES =====
 function renderTemplates() {
-  var g=document.getElementById('tpl-grid'); if(!g)return;
-  g.innerHTML=TEMPLATES.map(function(t){
-    return '<div class="tpl-card" onclick="sendTemplate('+JSON.stringify(t).replace(/"/g,'&quot;')+')">'
-      +'<div class="tpl-emoji">'+t.emoji+'</div><div class="tpl-name">'+esc(t.name)+'</div></div>';
-  }).join('');
+  var g = document.getElementById('tpl-grid');
+  if (!g) return;
+  g.innerHTML = '';
+  for (var i = 0; i < TEMPLATES.length; i++) {
+    var t = TEMPLATES[i];
+    var div = document.createElement('div');
+    div.className = 'tpl-card';
+    div.innerHTML = '<div class="tpl-emoji">' + t.emoji + '</div><div class="tpl-name">' + esc(t.name) + '</div>';
+    (function(tpl){ div.addEventListener('click', function(){ sendTemplate(tpl); }); })(t);
+    g.appendChild(div);
+  }
 }
+
 
 // ===== HELPERS =====
 function autoResize(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,120)+'px';}
