@@ -3,139 +3,424 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>TeamChat - Step1</title>
+<title>TeamChat - Step2</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-body { font-family: sans-serif; background: #0f1117; color: #e8eaf0; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
-.card { background: #171b26; border: 1px solid #2a3050; border-radius: 16px; padding: 36px; width: 340px; }
-h2 { margin: 0 0 20px; font-size: 20px; }
-input { width: 100%; padding: 10px 12px; margin-bottom: 12px; background: #1e2435; border: 1px solid #2a3050; border-radius: 8px; color: #e8eaf0; font-size: 14px; box-sizing: border-box; outline: none; }
-button { width: 100%; padding: 11px; background: #5b8af0; border: none; border-radius: 8px; color: #fff; font-size: 14px; font-weight: 700; cursor: pointer; margin-bottom: 8px; }
-button:hover { opacity: 0.85; }
-button:disabled { opacity: 0.5; cursor: not-allowed; }
-.sub { font-size: 12px; color: #8b93b0; text-align: center; cursor: pointer; }
-.sub:hover { color: #e8eaf0; }
-.err { color: #e05a5a; font-size: 12px; margin-top: 8px; text-align: center; min-height: 16px; word-break: break-all; }
-.suc { color: #4caf88; font-size: 13px; margin-top: 8px; text-align: center; min-height: 16px; }
-.log { margin-top: 12px; background: #0f1117; border-radius: 8px; padding: 10px; font-size: 11px; color: #8b93b0; max-height: 120px; overflow-y: auto; }
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: sans-serif; background: #0f1117; color: #e8eaf0; height: 100dvh; overflow: hidden; display: flex; flex-direction: column; }
+
+/* AUTH */
+#auth-screen { display: flex; align-items: center; justify-content: center; height: 100dvh; }
+.auth-card { background: #171b26; border: 1px solid #2a3050; border-radius: 16px; padding: 36px; width: 340px; }
+.auth-card h2 { margin: 0 0 20px; font-size: 20px; }
+.auth-card input { width: 100%; padding: 10px 12px; margin-bottom: 12px; background: #1e2435; border: 1px solid #2a3050; border-radius: 8px; color: #e8eaf0; font-size: 14px; outline: none; }
+.auth-card button { width: 100%; padding: 11px; background: #5b8af0; border: none; border-radius: 8px; color: #fff; font-size: 14px; font-weight: 700; cursor: pointer; margin-bottom: 8px; }
+.auth-card button:disabled { opacity: 0.5; cursor: not-allowed; }
+.toggle-link { font-size: 12px; color: #8b93b0; text-align: center; cursor: pointer; }
+.toggle-link:hover { color: #e8eaf0; }
+.err { color: #e05a5a; font-size: 12px; margin-top: 8px; text-align: center; }
+.suc { color: #4caf88; font-size: 13px; margin-top: 8px; text-align: center; }
+
+/* APP */
+#app { display: none; flex: 1; overflow: hidden; }
+#app.visible { display: flex; }
+
+/* SIDEBAR */
+.sidebar { width: 220px; background: #171b26; border-right: 1px solid #2a3050; display: flex; flex-direction: column; flex-shrink: 0; }
+.sidebar-header { padding: 14px 16px; border-bottom: 1px solid #2a3050; display: flex; align-items: center; justify-content: space-between; }
+.sidebar-logo { font-size: 15px; font-weight: 800; color: #5b8af0; }
+.add-room-btn { background: none; border: none; color: #8b93b0; cursor: pointer; font-size: 20px; line-height: 1; padding: 2px 6px; border-radius: 4px; }
+.add-room-btn:hover { background: #1e2435; color: #e8eaf0; }
+.rooms-list { flex: 1; overflow-y: auto; padding: 8px; }
+.rooms-label { font-size: 11px; color: #8b93b0; font-weight: 700; letter-spacing: 1px; padding: 8px 8px 4px; text-transform: uppercase; }
+.room-item { display: flex; align-items: center; gap: 6px; padding: 7px 10px; border-radius: 8px; cursor: pointer; color: #8b93b0; font-size: 14px; transition: all 0.15s; margin-bottom: 2px; }
+.room-item:hover { background: #1e2435; color: #e8eaf0; }
+.room-item.active { background: #5b8af0; color: #fff; }
+.sidebar-footer { padding: 12px 16px; border-top: 1px solid #2a3050; display: flex; align-items: center; gap: 8px; }
+.avatar { width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: #fff; flex-shrink: 0; }
+.user-name { font-size: 13px; font-weight: 600; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.logout-btn { background: none; border: none; color: #8b93b0; cursor: pointer; font-size: 18px; }
+.logout-btn:hover { color: #e05a5a; }
+
+/* MAIN */
+.main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+.main-header { padding: 0 20px; height: 52px; border-bottom: 1px solid #2a3050; display: flex; align-items: center; background: #171b26; flex-shrink: 0; }
+.channel-title { font-size: 15px; font-weight: 700; }
+.channel-desc { font-size: 12px; color: #8b93b0; margin-left: 10px; }
+
+/* MESSAGES */
+.messages-wrap { flex: 1; overflow-y: auto; padding: 16px 20px; }
+.messages-wrap::-webkit-scrollbar { width: 6px; }
+.messages-wrap::-webkit-scrollbar-thumb { background: #2a3050; border-radius: 3px; }
+.empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: #8b93b0; gap: 8px; }
+.empty-icon { font-size: 40px; }
+.msg { display: flex; gap: 10px; margin-bottom: 4px; padding: 3px 8px; border-radius: 8px; }
+.msg:hover { background: #1e2435; }
+.msg.first-in-group { margin-top: 14px; }
+.msg-avatar { width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: #fff; flex-shrink: 0; margin-top: 2px; }
+.msg-spacer { width: 34px; flex-shrink: 0; }
+.msg-body { flex: 1; min-width: 0; }
+.msg-header { display: flex; align-items: baseline; gap: 8px; margin-bottom: 2px; }
+.msg-author { font-size: 14px; font-weight: 700; }
+.msg-time { font-size: 11px; color: #8b93b0; }
+.msg-text { font-size: 14px; line-height: 1.55; word-break: break-word; white-space: pre-wrap; }
+
+/* INPUT */
+.input-area { padding: 12px 20px 16px; border-top: 1px solid #2a3050; background: #171b26; flex-shrink: 0; }
+.input-row { display: flex; gap: 8px; align-items: center; }
+.msg-input { flex: 1; padding: 11px 16px; background: #1e2435; border: 1px solid #2a3050; border-radius: 12px; color: #e8eaf0; font-size: 14px; outline: none; font-family: inherit; }
+.msg-input:focus { border-color: #5b8af0; }
+.send-btn { width: 42px; height: 42px; border-radius: 8px; background: #5b8af0; border: none; color: #fff; cursor: pointer; font-size: 18px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.send-btn:hover { opacity: 0.85; }
+.send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* MODAL */
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 100; opacity: 0; pointer-events: none; transition: opacity 0.2s; }
+.modal-overlay.open { opacity: 1; pointer-events: all; }
+.modal { background: #171b26; border: 1px solid #2a3050; border-radius: 16px; padding: 28px; width: 340px; }
+.modal h3 { font-size: 16px; font-weight: 700; margin-bottom: 16px; }
+.modal input { width: 100%; padding: 10px 12px; margin-bottom: 12px; background: #1e2435; border: 1px solid #2a3050; border-radius: 8px; color: #e8eaf0; font-size: 14px; outline: none; }
+.modal-footer { display: flex; gap: 8px; justify-content: flex-end; margin-top: 8px; }
+.btn-cancel { padding: 9px 16px; background: #1e2435; border: 1px solid #2a3050; border-radius: 8px; color: #8b93b0; cursor: pointer; font-size: 13px; font-weight: 600; }
+.btn-ok { padding: 9px 16px; background: #5b8af0; border: none; border-radius: 8px; color: #fff; cursor: pointer; font-size: 13px; font-weight: 600; }
 </style>
 </head>
 <body>
-<div class="card">
-  <h2 id="title">ログイン</h2>
-  <div id="username-wrap" style="display:none">
-    <input type="text" id="username" placeholder="ユーザー名">
+
+<!-- AUTH -->
+<div id="auth-screen">
+  <div class="auth-card">
+    <h2 id="auth-title">ログイン</h2>
+    <div id="username-wrap" style="display:none">
+      <input type="text" id="username" placeholder="ユーザー名">
+    </div>
+    <input type="email" id="email" placeholder="メールアドレス">
+    <input type="password" id="pass" placeholder="パスワード（6文字以上）">
+    <button id="auth-btn" onclick="doAuth()">ログイン</button>
+    <div class="toggle-link" onclick="toggleAuth()" id="toggle-link">→ 新規登録はこちら</div>
+    <div class="err" id="auth-err"></div>
+    <div class="suc" id="auth-ok"></div>
   </div>
-  <input type="email" id="email" placeholder="メールアドレス">
-  <input type="password" id="pass" placeholder="パスワード（6文字以上）">
-  <button id="btn" onclick="doAction()">ログイン</button>
-  <div class="sub" onclick="toggle()" id="toggle-link">→ 新規登録はこちら</div>
-  <div class="err" id="msg"></div>
-  <div class="suc" id="ok"></div>
-  <div class="log" id="log"></div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <span class="sidebar-logo">TeamChat</span>
+      <button class="add-room-btn" onclick="openModal('room-modal')" title="チャンネル追加">+</button>
+    </div>
+    <div class="rooms-list">
+      <div class="rooms-label">チャンネル</div>
+      <div id="rooms-list"></div>
+    </div>
+    <div class="sidebar-footer">
+      <div class="avatar" id="sidebar-avatar">U</div>
+      <div class="user-name" id="sidebar-username">...</div>
+      <button class="logout-btn" onclick="doLogout()" title="ログアウト">⎋</button>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="main-header">
+      <span class="channel-title" id="room-title"># チャンネルを選択</span>
+      <span class="channel-desc" id="room-desc"></span>
+    </div>
+    <div class="messages-wrap" id="messages-wrap">
+      <div class="empty-state">
+        <div class="empty-icon">💬</div>
+        <div>チャンネルを選んでください</div>
+      </div>
+    </div>
+    <div class="input-area" id="input-area" style="display:none">
+      <div class="input-row">
+        <input class="msg-input" id="msg-input" type="text" placeholder="メッセージを入力..." onkeydown="onMsgKey(event)">
+        <button class="send-btn" id="send-btn" onclick="sendMessage()">➤</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ROOM MODAL -->
+<div class="modal-overlay" id="room-modal">
+  <div class="modal">
+    <h3>チャンネルを作成</h3>
+    <input type="text" id="new-room-name" placeholder="チャンネル名">
+    <input type="text" id="new-room-desc" placeholder="説明（任意）">
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeModal('room-modal')">キャンセル</button>
+      <button class="btn-ok" onclick="createRoom()">作成</button>
+    </div>
+  </div>
 </div>
 
 <script>
 var SUPABASE_URL = 'https://nsckdlitgupublaqaypx.supabase.co';
 var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5zY2tkbGl0Z3VwdWJsYXFheXB4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODczNzc3ODgsImV4cCI6MjEwMjk1Mzc4OH0._IhnshSj5O0_aMmWSN6u5Z3iUN6SME7tBAH0p73x2xE';
-var isLogin = true;
-var sb;
 
-function addLog(text) {
-  var el = document.getElementById('log');
-  var t = new Date().toLocaleTimeString('ja-JP');
-  el.innerHTML += '[' + t + '] ' + text + '<br>';
-  el.scrollTop = el.scrollHeight;
+var sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+var currentUser = null;
+var currentProfile = null;
+var currentRoom = null;
+var rooms = [];
+var realtimeSub = null;
+var messagesCache = [];
+var isLoginMode = true;
+
+// ===== INIT =====
+sb.auth.getSession().then(function(res) {
+  if (res.data.session) onLoggedIn(res.data.session.user);
+});
+sb.auth.onAuthStateChange(function(event, session) {
+  if (session) onLoggedIn(session.user);
+  else onLoggedOut();
+});
+
+// ===== AUTH =====
+function toggleAuth() {
+  isLoginMode = !isLoginMode;
+  document.getElementById('auth-title').textContent = isLoginMode ? 'ログイン' : '新規登録';
+  document.getElementById('auth-btn').textContent = isLoginMode ? 'ログイン' : '登録する';
+  document.getElementById('toggle-link').textContent = isLoginMode ? '→ 新規登録はこちら' : '→ ログインはこちら';
+  document.getElementById('username-wrap').style.display = isLoginMode ? 'none' : 'block';
+  document.getElementById('auth-err').textContent = '';
+  document.getElementById('auth-ok').textContent = '';
 }
 
-try {
-  sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-  addLog('✅ Supabase初期化OK');
-  document.getElementById('ok').textContent = '✅ Supabase接続OK';
-} catch(e) {
-  addLog('❌ 初期化失敗: ' + e.message);
-  document.getElementById('msg').textContent = '❌ 初期化失敗: ' + e.message;
-}
-
-function toggle() {
-  isLogin = !isLogin;
-  document.getElementById('title').textContent = isLogin ? 'ログイン' : '新規登録';
-  document.getElementById('btn').textContent = isLogin ? 'ログイン' : '登録する';
-  document.getElementById('toggle-link').textContent = isLogin ? '→ 新規登録はこちら' : '→ ログインはこちら';
-  document.getElementById('username-wrap').style.display = isLogin ? 'none' : 'block';
-  document.getElementById('msg').textContent = '';
-  document.getElementById('ok').textContent = '';
-}
-
-function doAction() {
+function doAuth() {
   var email = document.getElementById('email').value.trim();
   var pass = document.getElementById('pass').value;
   var username = document.getElementById('username').value.trim();
-  document.getElementById('msg').textContent = '';
-  document.getElementById('ok').textContent = '';
+  var btn = document.getElementById('auth-btn');
+  document.getElementById('auth-err').textContent = '';
+  if (!email || !pass) { document.getElementById('auth-err').textContent = '入力してください'; return; }
+  btn.disabled = true; btn.textContent = '処理中...';
 
-  if (!email || !pass) {
-    document.getElementById('msg').textContent = 'メールとパスワードを入力してください';
-    return;
-  }
-
-  var btn = document.getElementById('btn');
-  btn.disabled = true;
-  btn.textContent = '処理中...';
-
-  if (isLogin) {
-    addLog('ログイン試行: ' + email);
+  if (isLoginMode) {
     sb.auth.signInWithPassword({ email: email, password: pass }).then(function(res) {
-      btn.disabled = false;
-      btn.textContent = 'ログイン';
+      btn.disabled = false; btn.textContent = 'ログイン';
       if (res.error) {
-        addLog('❌ エラー: ' + res.error.message + ' (status: ' + res.error.status + ')');
-        var msg = res.error.message;
-        if (msg === 'Invalid login credentials') msg = 'メールまたはパスワードが違います';
-        if (msg.indexOf('Email not confirmed') !== -1) msg = 'メール確認が必要です。Supabase → Authentication → Email → Confirm email をOFFに';
-        document.getElementById('msg').textContent = '❌ ' + msg;
-      } else {
-        addLog('✅ ログイン成功: ' + res.data.user.email);
-        document.getElementById('ok').textContent = '✅ ログイン成功！フェーズ2へ進めます！';
+        var m = res.error.message;
+        if (m === 'Invalid login credentials') m = 'メールまたはパスワードが違います';
+        document.getElementById('auth-err').textContent = '❌ ' + m;
       }
-    }).catch(function(e) {
-      btn.disabled = false;
-      btn.textContent = 'ログイン';
-      addLog('❌ 例外: ' + e.message);
-      document.getElementById('msg').textContent = '❌ ' + e.message;
     });
-
   } else {
-    if (!username) {
-      document.getElementById('msg').textContent = 'ユーザー名を入力してください';
-      btn.disabled = false;
-      btn.textContent = '登録する';
-      return;
-    }
-    addLog('新規登録試行: ' + email + ' / ' + username);
-    sb.auth.signUp({
-      email: email,
-      password: pass,
-      options: { data: { username: username } }
-    }).then(function(res) {
-      btn.disabled = false;
-      btn.textContent = '登録する';
+    if (!username) { document.getElementById('auth-err').textContent = 'ユーザー名を入力してください'; btn.disabled = false; btn.textContent = '登録する'; return; }
+    sb.auth.signUp({ email: email, password: pass, options: { data: { username: username } } }).then(function(res) {
+      btn.disabled = false; btn.textContent = '登録する';
       if (res.error) {
-        addLog('❌ エラー: ' + res.error.message);
-        document.getElementById('msg').textContent = '❌ ' + res.error.message;
+        document.getElementById('auth-err').textContent = '❌ ' + res.error.message;
       } else {
-        addLog('✅ 登録成功: ' + res.data.user.email);
-        document.getElementById('ok').textContent = '✅ 登録成功！そのままログインできます';
-        toggle();
+        document.getElementById('auth-ok').textContent = '✅ 登録完了！ログインしてください';
+        toggleAuth();
       }
-    }).catch(function(e) {
-      btn.disabled = false;
-      btn.textContent = '登録する';
-      addLog('❌ 例外: ' + e.message);
-      document.getElementById('msg').textContent = '❌ ' + e.message;
     });
   }
 }
+
+function doLogout() {
+  if (realtimeSub) sb.removeChannel(realtimeSub);
+  sb.auth.signOut();
+}
+
+function onLoggedIn(user) {
+  currentUser = user;
+  sb.from('profiles').select('*').eq('id', user.id).single().then(function(res) {
+    currentProfile = res.data || { username: user.email, display_color: '#5b8af0' };
+    updateSidebarUser();
+    document.getElementById('auth-screen').style.display = 'none';
+    document.getElementById('app').classList.add('visible');
+    loadRooms();
+  });
+}
+
+function onLoggedOut() {
+  currentUser = null; currentProfile = null; currentRoom = null;
+  document.getElementById('auth-screen').style.display = 'flex';
+  document.getElementById('app').classList.remove('visible');
+}
+
+function updateSidebarUser() {
+  if (!currentProfile) return;
+  var name = currentProfile.username || currentUser.email;
+  var color = currentProfile.display_color || '#5b8af0';
+  document.getElementById('sidebar-username').textContent = name;
+  var av = document.getElementById('sidebar-avatar');
+  av.textContent = name[0].toUpperCase();
+  av.style.background = color;
+}
+
+// ===== ROOMS =====
+function loadRooms() {
+  sb.from('rooms').select('*').order('created_at').then(function(res) {
+    rooms = res.data || [];
+    renderRooms();
+    if (rooms.length > 0) selectRoom(rooms[0]);
+  });
+}
+
+function renderRooms() {
+  var html = '';
+  for (var i = 0; i < rooms.length; i++) {
+    var r = rooms[i];
+    var active = currentRoom && currentRoom.id === r.id ? ' active' : '';
+    html += '<div class="room-item' + active + '" onclick="selectRoom_byId(\'' + r.id + '\')"># ' + esc(r.name) + '</div>';
+  }
+  document.getElementById('rooms-list').innerHTML = html;
+}
+
+function selectRoom_byId(id) {
+  for (var i = 0; i < rooms.length; i++) {
+    if (rooms[i].id === id) { selectRoom(rooms[i]); return; }
+  }
+}
+
+function selectRoom(room) {
+  currentRoom = room;
+  renderRooms();
+  document.getElementById('room-title').textContent = '# ' + room.name;
+  document.getElementById('room-desc').textContent = room.description || '';
+  document.getElementById('input-area').style.display = 'block';
+  if (realtimeSub) { sb.removeChannel(realtimeSub); realtimeSub = null; }
+  loadMessages();
+  subscribeMessages();
+}
+
+function createRoom() {
+  var name = document.getElementById('new-room-name').value.trim();
+  var desc = document.getElementById('new-room-desc').value.trim();
+  if (!name) return;
+  sb.from('rooms').insert({ name: name, description: desc, created_by: currentUser.id }).select().single().then(function(res) {
+    if (res.data) {
+      rooms.push(res.data);
+      renderRooms();
+      closeModal('room-modal');
+      document.getElementById('new-room-name').value = '';
+      document.getElementById('new-room-desc').value = '';
+      selectRoom(res.data);
+    }
+  });
+}
+
+// ===== MESSAGES =====
+function loadMessages() {
+  var wrap = document.getElementById('messages-wrap');
+  wrap.innerHTML = '<div style="text-align:center;padding:40px;color:#8b93b0;font-size:13px">読み込み中...</div>';
+  sb.from('messages').select('*, profiles(username, display_color)').eq('room_id', currentRoom.id).order('created_at', { ascending: true }).limit(100).then(function(res) {
+    messagesCache = res.data || [];
+    renderMessages();
+    scrollBottom();
+  });
+}
+
+function renderMessages() {
+  var wrap = document.getElementById('messages-wrap');
+  if (messagesCache.length === 0) {
+    wrap.innerHTML = '<div class="empty-state"><div class="empty-icon">🌱</div><div>最初のメッセージを送りましょう！</div></div>';
+    return;
+  }
+  var html = '';
+  var lastUser = null;
+  for (var i = 0; i < messagesCache.length; i++) {
+    var msg = messagesCache[i];
+    var profile = msg.profiles || {};
+    var name = profile.username || '不明';
+    var color = msg.color || profile.display_color || '#5b8af0';
+    var time = new Date(msg.created_at).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
+    var isFirst = msg.user_id !== lastUser;
+    lastUser = msg.user_id;
+    html += '<div class="msg' + (isFirst ? ' first-in-group' : '') + '">';
+    if (isFirst) {
+      html += '<div class="msg-avatar" style="background:' + color + '33;color:' + color + '">' + esc(name[0].toUpperCase()) + '</div>';
+    } else {
+      html += '<div class="msg-spacer"></div>';
+    }
+    html += '<div class="msg-body">';
+    if (isFirst) {
+      html += '<div class="msg-header"><span class="msg-author" style="color:' + color + '">' + esc(name) + '</span><span class="msg-time">' + time + '</span></div>';
+    }
+    html += '<div class="msg-text">' + esc(msg.content || '') + '</div>';
+    html += '</div></div>';
+  }
+  wrap.innerHTML = html;
+}
+
+function subscribeMessages() {
+  realtimeSub = sb.channel('room-' + currentRoom.id)
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: 'room_id=eq.' + currentRoom.id }, function(payload) {
+      sb.from('messages').select('*, profiles(username, display_color)').eq('id', payload.new.id).single().then(function(res) {
+        if (res.data) {
+          var wasEmpty = messagesCache.length === 0;
+          messagesCache.push(res.data);
+          if (wasEmpty) {
+            renderMessages();
+          } else {
+            appendMessage(res.data);
+          }
+          scrollBottom();
+        }
+      });
+    })
+    .subscribe();
+}
+
+function appendMessage(msg) {
+  var wrap = document.getElementById('messages-wrap');
+  var empty = wrap.querySelector('.empty-state');
+  if (empty) empty.remove();
+  var profile = msg.profiles || {};
+  var name = profile.username || '不明';
+  var color = msg.color || profile.display_color || '#5b8af0';
+  var time = new Date(msg.created_at).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
+  var prev = messagesCache[messagesCache.length - 2];
+  var isFirst = !prev || prev.user_id !== msg.user_id;
+  var el = document.createElement('div');
+  el.className = 'msg' + (isFirst ? ' first-in-group' : '');
+  var avatar = isFirst
+    ? '<div class="msg-avatar" style="background:' + color + '33;color:' + color + '">' + esc(name[0].toUpperCase()) + '</div>'
+    : '<div class="msg-spacer"></div>';
+  var header = isFirst ? '<div class="msg-header"><span class="msg-author" style="color:' + color + '">' + esc(name) + '</span><span class="msg-time">' + time + '</span></div>' : '';
+  el.innerHTML = avatar + '<div class="msg-body">' + header + '<div class="msg-text">' + esc(msg.content || '') + '</div></div>';
+  wrap.appendChild(el);
+}
+
+// ===== SEND =====
+function sendMessage() {
+  if (!currentRoom || !currentUser) return;
+  var input = document.getElementById('msg-input');
+  var text = input.value.trim();
+  if (!text) return;
+  var btn = document.getElementById('send-btn');
+  btn.disabled = true;
+  var color = currentProfile ? (currentProfile.display_color || '#5b8af0') : '#5b8af0';
+  sb.from('messages').insert({ room_id: currentRoom.id, user_id: currentUser.id, content: text, message_type: 'text', color: color }).then(function() {
+    btn.disabled = false;
+    input.value = '';
+    input.focus();
+  });
+}
+
+function onMsgKey(e) {
+  if (e.key === 'Enter') { e.preventDefault(); sendMessage(); }
+}
+
+// ===== HELPERS =====
+function scrollBottom() {
+  var wrap = document.getElementById('messages-wrap');
+  wrap.scrollTop = wrap.scrollHeight;
+}
+
+function esc(str) {
+  if (!str) return '';
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('modal-overlay')) closeModal(e.target.id);
+});
 </script>
 </body>
 </html>
