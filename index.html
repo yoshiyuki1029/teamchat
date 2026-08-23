@@ -325,6 +325,19 @@ body { font-family: 'Segoe UI','Hiragino Sans','Yu Gothic UI',sans-serif; backgr
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
       <span style="font-size:12px;color:#8b93b0">カスタム:</span>
       <input type="color" id="custom-color" style="width:36px;height:30px;border:none;background:none;cursor:pointer;padding:0">
+      <span style="font-size:12px;color:#8b93b0">HEX:</span>
+      <input type="text" id="hex-color" placeholder="#5b8af0" style="width:90px;padding:5px 8px;background:#1e2435;border:1px solid #2a3050;border-radius:6px;color:#e8eaf0;font-size:13px;outline:none;margin-bottom:0">
+    </div>
+    <div id="admin-gradient-section" style="display:none;margin-bottom:14px">
+      <label style="margin-bottom:8px;display:block">管理者専用：グラデーション</label>
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+        <span style="font-size:12px;color:#8b93b0">色1:</span>
+        <input type="color" id="grad-color1" value="#5b8af0" style="width:36px;height:30px;border:none;background:none;cursor:pointer;padding:0" oninput="updateGradPreview()">
+        <span style="font-size:12px;color:#8b93b0">色2:</span>
+        <input type="color" id="grad-color2" value="#7c6af5" style="width:36px;height:30px;border:none;background:none;cursor:pointer;padding:0" oninput="updateGradPreview()">
+      </div>
+      <div id="grad-preview" style="padding:8px 12px;border-radius:8px;font-size:14px;font-weight:600;margin-bottom:4px;background:linear-gradient(135deg,#5b8af0,#7c6af5);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">グラデーションプレビュー</div>
+      <button onclick="applyGradient()" style="padding:6px 14px;background:#1e2435;border:1px solid #2a3050;border-radius:6px;color:#8b93b0;cursor:pointer;font-size:12px">このグラデーションを適用</button>
     </div>
     <label>プレビュー</label>
     <div class="preview-text" id="preview-text">こんにちは！メッセージはこの色になります。</div>
@@ -435,24 +448,36 @@ function doLogout() {
   if(presenceCh) sb.removeChannel(presenceCh);
   sb.auth.signOut();
 }
+var loginInitialized = false;
 function onLoggedIn(user) {
   currentUser = user;
   sb.from('profiles').select('*').eq('id',user.id).single().then(function(r){
     currentProfile = r.data || {username:user.email,display_color:'#5b8af0',is_admin:false};
-    isAdmin = currentProfile.is_admin===true;
+    // is_adminはboolean型またはtrue文字列どちらでも対応
+    isAdmin = currentProfile.is_admin===true || currentProfile.is_admin==='true';
     updateSidebarUser();
-    if(isAdmin) document.getElementById('add-room-btn').classList.remove('hidden');
+    applyAdminUI();
     document.getElementById('auth-screen').style.display='none';
     document.getElementById('app').classList.add('visible');
-    loadAllProfiles();
-    loadRooms();
-    setupPresence();
-    setupTyping();
-    setupDmSubscription();
+    if(!loginInitialized) {
+      loginInitialized = true;
+      loadAllProfiles();
+      loadRooms();
+      setupPresence();
+      setupTyping();
+      setupDmSubscription();
+    }
   });
 }
+function applyAdminUI() {
+  if(isAdmin) {
+    document.getElementById('add-room-btn').classList.remove('hidden');
+  } else {
+    document.getElementById('add-room-btn').classList.add('hidden');
+  }
+}
 function onLoggedOut() {
-  currentUser=null;currentProfile=null;currentRoom=null;currentDmUser=null;isAdmin=false;
+  currentUser=null;currentProfile=null;currentRoom=null;currentDmUser=null;isAdmin=false;loginInitialized=false;
   document.getElementById('auth-screen').style.display='flex';
   document.getElementById('app').classList.remove('visible');
   document.getElementById('add-room-btn').classList.add('hidden');
@@ -466,25 +491,60 @@ function updateSidebarUser() {
   var av=document.getElementById('sidebar-avatar');
   av.textContent=name[0].toUpperCase(); av.style.background=color;
   document.getElementById('settings-username').value=name;
-  document.getElementById('custom-color').value=color;
+  // colorがhexの場合のみcolorピッカーにセット
+  if(color&&color[0]==='#'&&color.length<=7) {
+    document.getElementById('custom-color').value=color;
+  }
+  document.getElementById('hex-color').value=color||'#5b8af0';
   document.getElementById('preview-text').style.color=color;
   updateColorSel(color);
+  // 管理者UIを表示
+  if(isAdmin) document.getElementById('admin-gradient-section').style.display='block';
 }
 function renderColorPresets() {
   var wrap=document.getElementById('color-presets');
   wrap.innerHTML=COLOR_PRESETS.map(function(c){
-    return '<div class="color-dot" style="background:'+c+'" data-color="'+c+'" onclick="selectColor(\''+c+'\')"></div>';
+    return '<div class="color-dot" style="background:'+c+'" data-color="'+c+'" onclick="selectColor(''+c+'')"></div>';
   }).join('');
   document.getElementById('custom-color').addEventListener('input',function(){
     document.getElementById('preview-text').style.color=this.value;
+    document.getElementById('hex-color').value=this.value;
     updateColorSel(this.value);
   });
+  document.getElementById('hex-color').addEventListener('input',function(){
+    var val=this.value.trim();
+    if(/^#[0-9a-fA-F]{6}$/.test(val)){
+      document.getElementById('custom-color').value=val;
+      document.getElementById('preview-text').style.color=val;
+      updateColorSel(val);
+    }
+  });
+}
+function updateGradPreview() {
+  var c1=document.getElementById('grad-color1').value;
+  var c2=document.getElementById('grad-color2').value;
+  var el=document.getElementById('grad-preview');
+  el.style.background='linear-gradient(135deg,'+c1+','+c2+')';
+  el.style.webkitBackgroundClip='text';
+  el.style.webkitTextFillColor='transparent';
+  el.style.backgroundClip='text';
+}
+function applyGradient() {
+  var c1=document.getElementById('grad-color1').value;
+  var c2=document.getElementById('grad-color2').value;
+  document.getElementById('custom-color').value=c1;
+  document.getElementById('hex-color').value='gradient:'+c1+','+c2;
+  document.getElementById('preview-text').style.background='linear-gradient(135deg,'+c1+','+c2+')';
+  document.getElementById('preview-text').style.webkitBackgroundClip='text';
+  document.getElementById('preview-text').style.webkitTextFillColor='transparent';
+  showToast('グラデーションを設定しました。保存してください。');
 }
 function updateColorSel(color){document.querySelectorAll('.color-dot').forEach(function(el){el.classList.toggle('sel',el.dataset.color===color);});}
 function selectColor(c){document.getElementById('custom-color').value=c;document.getElementById('preview-text').style.color=c;updateColorSel(c);}
 function saveSettings() {
   var username=document.getElementById('settings-username').value.trim();
-  var color=document.getElementById('custom-color').value;
+  var hexVal=document.getElementById('hex-color').value.trim();
+  var color=hexVal||document.getElementById('custom-color').value;
   if(!username){showToast('ユーザー名を入力してください');return;}
   sb.from('profiles').update({username:username,display_color:color}).eq('id',currentUser.id).then(function(r){
     if(r.error){showToast('❌ '+r.error.message);return;}
