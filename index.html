@@ -818,6 +818,157 @@ function loadDmUserModal() {
     el.appendChild(div);
   }
 }
+
+// ===== MESSAGES =====
+function loadMessages(mode) {
+  var wrap = document.getElementById('messages-wrap');
+  wrap.innerHTML = '<div style="text-align:center;padding:40px;color:#8b93b0;font-size:13px">読み込み中...</div>';
+  messagesCache = [];
+  if (mode === 'room') {
+    sb.from('messages')
+      .select('*, profiles(username, display_color)')
+      .eq('room_id', currentRoom.id)
+      .order('created_at', { ascending: true })
+      .limit(100)
+      .then(function(r) {
+        if (r.error) {
+          wrap.innerHTML = '<div style="text-align:center;padding:40px;color:#e05a5a">エラー: ' + esc(r.error.message) + '</div>';
+          return;
+        }
+        messagesCache = r.data || [];
+        renderMessages('room');
+        scrollBottom();
+      });
+  } else {
+    var uid = currentDmUser.id;
+    sb.from('direct_messages')
+      .select('*, profiles!direct_messages_sender_id_fkey(username, display_color)')
+      .or('and(sender_id.eq.' + currentUser.id + ',receiver_id.eq.' + uid + '),and(sender_id.eq.' + uid + ',receiver_id.eq.' + currentUser.id + ')')
+      .order('created_at', { ascending: true })
+      .limit(100)
+      .then(function(r) {
+        if (r.error) {
+          wrap.innerHTML = '<div style="text-align:center;padding:40px;color:#e05a5a">エラー: ' + esc(r.error.message) + '</div>';
+          return;
+        }
+        messagesCache = r.data || [];
+        renderMessages('dm');
+        scrollBottom();
+      });
+  }
+}
+
+function renderMessages(mode) {
+  var wrap = document.getElementById('messages-wrap');
+  if (messagesCache.length === 0) {
+    wrap.innerHTML = '<div class="empty-state"><div class="empty-icon">🌱</div><div>最初のメッセージを送りましょう！</div></div>';
+    return;
+  }
+  wrap.innerHTML = '';
+  var lastUser = null;
+  var lastDay = null;
+  for (var i = 0; i < messagesCache.length; i++) {
+    var msg = messagesCache[i];
+    var day = new Date(msg.created_at).toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' });
+    if (day !== lastDay) {
+      var sep = document.createElement('div');
+      sep.className = 'day-sep';
+      sep.innerHTML = '<span>' + esc(day) + '</span>';
+      wrap.appendChild(sep);
+      lastDay = day;
+      lastUser = null;
+    }
+    var el = document.createElement('div');
+    var userId = msg.user_id || msg.sender_id;
+    el.innerHTML = mode === 'dm' ? buildDmMsgHtml(msg, lastUser) : buildMsgHtml(msg, lastUser);
+    wrap.appendChild(el.firstChild || el);
+    lastUser = userId;
+  }
+}
+
+function buildMsgHtml(msg, lastUserId) {
+  var profile = msg.profiles || {};
+  var name = profile.username || '不明';
+  var color = msg.color || profile.display_color || '#5b8af0';
+  var time = new Date(msg.created_at).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
+  var isFirst = msg.user_id !== lastUserId;
+  var avatar = isFirst
+    ? '<div class="msg-avatar" style="background:' + color + '22;color:' + color + '">' + esc(name[0].toUpperCase()) + '</div>'
+    : '<div class="msg-spacer"></div>';
+  var header = isFirst
+    ? '<div class="msg-header"><span class="msg-author" style="color:' + color + '" onclick="mentionUser('' + esc(name) + '')">' + esc(name) + '</span><span class="msg-time">' + time + '</span></div>'
+    : '';
+  var content = buildContent(msg, color);
+  var canDelete = isAdmin || (currentUser && msg.user_id === currentUser.id);
+  var actions = canDelete ? '<div class="msg-actions"><button class="msg-action-btn danger" onclick="deleteMsg('' + msg.id + '','room')" title="削除">🗑</button></div>' : '';
+  return '<div class="msg' + (isFirst ? ' first-in-group' : '') + '" id="msg-' + msg.id + '">' + avatar + '<div class="msg-body">' + header + content + '</div>' + actions + '</div>';
+}
+
+function buildDmMsgHtml(msg, lastSenderId) {
+  var isMine = msg.sender_id === currentUser.id;
+  var profile = msg.profiles || {};
+  var name = isMine ? (currentProfile ? currentProfile.username : 'あなた') : (currentDmUser ? currentDmUser.username : profile.username || '相手');
+  var color = isMine ? (currentProfile ? currentProfile.display_color : '#5b8af0') : (currentDmUser ? currentDmUser.display_color : profile.display_color || '#5b8af0');
+  var time = new Date(msg.created_at).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
+  var isFirst = msg.sender_id !== lastSenderId;
+  var avatar = isFirst
+    ? '<div class="msg-avatar" style="background:' + color + '22;color:' + color + '">' + esc(name[0].toUpperCase()) + '</div>'
+    : '<div class="msg-spacer"></div>';
+  var header = isFirst
+    ? '<div class="msg-header"><span class="msg-author" style="color:' + color + '">' + esc(name) + '</span><span class="msg-time">' + time + '</span></div>'
+    : '';
+  var content = msg.image_url
+    ? '<img class="msg-img" src="' + esc(msg.image_url) + '" onclick="openLightbox('' + esc(msg.image_url) + '')" loading="lazy">'
+    : '<div class="msg-text" style="color:' + color + '">' + esc(msg.content || '') + '</div>';
+  var canDelete = isMine || isAdmin;
+  var actions = canDelete ? '<div class="msg-actions"><button class="msg-action-btn danger" onclick="deleteMsg('' + msg.id + '','dm')" title="削除">🗑</button></div>' : '';
+  return '<div class="msg' + (isFirst ? ' first-in-group' : '') + '" id="msg-' + msg.id + '">' + avatar + '<div class="msg-body">' + header + content + '</div>' + actions + '</div>';
+}
+
+function buildContent(msg, color) {
+  if (msg.message_type === 'image' && msg.image_url) {
+    var c = '<img class="msg-img" src="' + esc(msg.image_url) + '" onclick="openLightbox('' + esc(msg.image_url) + '')" loading="lazy">';
+    if (msg.content) c += '<div class="msg-text" style="color:' + color + '">' + formatText(msg.content, color) + '</div>';
+    return c;
+  }
+  if (msg.message_type === 'template') {
+    return '<div class="template-bubble" style="background:' + color + '22;color:' + color + ';border:1px solid ' + color + '44">' + esc(msg.content) + '</div>';
+  }
+  return '<div class="msg-text" style="color:' + color + '">' + formatText(msg.content || '', color) + '</div>';
+}
+
+function formatText(text, color) {
+  var h = esc(text);
+  h = h.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  h = h.replace(/@(\S+)/g, '<span class="mention">@$1</span>');
+  h = h.replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener" style="color:#5b8af0;text-decoration:underline">$1</a>');
+  return h;
+}
+
+function subscribeRoomMessages() {
+  realtimeSub = sb.channel('room-msg-' + currentRoom.id)
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: 'room_id=eq.' + currentRoom.id }, function(payload) {
+      sb.from('messages').select('*, profiles(username, display_color)').eq('id', payload.new.id).single().then(function(r) {
+        if (!r.data) return;
+        var prevUser = messagesCache.length > 0 ? messagesCache[messagesCache.length - 1].user_id : null;
+        messagesCache.push(r.data);
+        var wrap = document.getElementById('messages-wrap');
+        var empty = wrap.querySelector('.empty-state');
+        if (empty) wrap.innerHTML = '';
+        appendMsgEl(buildMsgHtml(r.data, prevUser));
+        var atBottom = wrap.scrollHeight - wrap.scrollTop - wrap.clientHeight < 100;
+        if (atBottom) scrollBottom();
+        markRoomRead(currentRoom.id);
+      });
+    })
+    .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'messages' }, function(payload) {
+      var el = document.getElementById('msg-' + payload.old.id);
+      if (el) el.remove();
+      messagesCache = messagesCache.filter(function(m) { return m.id !== payload.old.id; });
+    })
+    .subscribe();
+}
+
 function subscribeDmMessages() {
   var uid=currentDmUser.id;
   realtimeSub=sb.channel('dm-conv-'+[currentUser.id,uid].sort().join('-'))
